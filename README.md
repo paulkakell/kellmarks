@@ -1,4 +1,4 @@
-# Kellmarks
+# <img src="docs/assets/logo.svg" alt="Kellmarks logo" width="45" height="45"> Kellmarks
 
 Kellmarks is a minimal, self hosted bookmark homepage designed for speed, clarity, and local ownership of data. It provides a dark themed single page interface with hierarchical tags, advanced search, and a small Flask backend that persists everything to a single JSON file.
 
