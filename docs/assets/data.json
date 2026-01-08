@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "exportedAt": "2025-12-16T23:52:53.559951Z",
+  "entries": [
+    {
+      "id": "seed-homepage",
+      "title": "GetHomepage.dev",
+      "url": "https://gethomepage.dev/",
+      "iconUrl": "https://gethomepage.dev/assets/images/logo.png",
+      "description": "Homepage dashboard inspiration for widgets and layout.",
+      "tags": [
+        "tools/homepage",
+        "dashboards"
+      ],
+      "createdAt": "2025-12-16T23:52:53.559951Z",
+      "updatedAt": "2025-12-16T23:52:53.559951Z"
+    },
+    {
+      "id": "seed-ddg",
+      "title": "DuckDuckGo",
+      "url": "https://duckduckgo.com/",
+      "iconUrl": "https://duckduckgo.com/assets/logo_header.v108.svg",
+      "description": "Search engine. External results appear under internal matches.",
+      "tags": [
+        "search"
+      ],
+      "createdAt": "2025-12-16T23:52:53.559951Z",
+      "updatedAt": "2025-12-16T23:52:53.559951Z"
+    }
+  ]
+}

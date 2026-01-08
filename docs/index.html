@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kellmarks</title>
+  <link rel="icon" href="favicon.ico">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="bar">
+        <div class="brand" title="Kellmarks">
+          <img src="assets/logo.svg" alt="Kellmarks logo">
+          <div>
+            <h1>Kellmarks</h1>
+            <div class="sub">Local first, fast, searchable</div>
+          </div>
+        </div>
+
+        <div class="search" role="search">
+          <input id="q" autocomplete="off" placeholder='Search: supports AND OR NOT and ( )  Example: vpn AND (aws OR azure)'>
+          <div class="kbd" title="Shortcut">Ctrl K</div>
+        </div>
+
+        <button class="btn" id="addBtn" type="button">Add</button>
+      </div>
+    </header>
+
+    <main>
+      <aside>
+        <div class="side-top">
+          <h2>Hierarchy</h2>
+          <div class="side-actions">
+            <button class="btn secondary" id="exportBtn" type="button">Export</button>
+            <button class="btn secondary" id="importBtn" type="button">Import</button>
+          </div>
+        </div>
+        <div class="tree" id="tree"></div>
+      </aside>
+
+      <div class="content">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="title" id="viewTitle">All</div>
+              <div class="meta" id="viewMeta"></div>
+            </div>
+            <div class="meta" id="hint"></div>
+          </div>
+
+          <div id="banner" class="banner" style="display:none;">
+            <span id="bannerText"></span>
+          </div>
+
+          <div id="cards" class="grid"></div>
+          <div id="empty" class="empty" style="display:none;"></div>
+        </section>
+
+        <section class="panel" id="ddgPanel" style="display:none;">
+          <div class="panel-head">
+            <div>
+              <div class="title">DuckDuckGo</div>
+              <div class="meta">External results</div>
+            </div>
+            <div class="meta" id="ddgStatus"></div>
+          </div>
+          <div class="ddg">
+            <p id="ddgIntro"></p>
+            <div class="ddg-list" id="ddgList"></div>
+            <div class="ddg-note" id="ddgNote"></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="editor">
+    <div class="modal-head">
+      <div class="mh" id="modalTitle">Add entry</div>
+      <button class="close" id="closeModal" type="button">Close</button>
+    </div>
+    <form id="form">
+      <div class="modal-body">
+        <div class="row">
+          <div class="field">
+            <label for="title">Title</label>
+            <input id="title" required maxlength="120" placeholder="Example: Datadog">
+          </div>
+          <div class="field">
+            <label for="url">URL</label>
+            <input id="url" required maxlength="2048" placeholder="https://example.com">
+            <div class="help">Tip: include https:// for best behavior.</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="icon">Icon URL</label>
+            <input id="icon" maxlength="2048" placeholder="https://site/icon.png">
+            <div class="help">Optional. If blank, initials are shown.</div>
+          </div>
+          <div class="field">
+            <label for="tags">Tags</label>
+            <input id="tags" maxlength="400" placeholder="work/security/tools, aws/iam, personal">
+            <div class="help">Comma separated. Use slashes for hierarchy (example: aws/iam).</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="desc">Description</label>
+          <textarea id="desc" maxlength="600" placeholder="Short description shown on the card"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn secondary" id="cancelBtn" type="button">Cancel</button>
+        <button class="btn" id="saveBtn" type="submit">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <input type="file" id="filePick" accept="application/json" style="display:none;">
+  <div class="toast" id="toast"></div>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

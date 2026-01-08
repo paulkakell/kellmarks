@@ -1,0 +1,135 @@
+openapi: 3.0.3
+info:
+  title: Kellmarks API
+  version: "1.0.0"
+servers:
+  - url: http://127.0.0.1:8787
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+  /api/entries:
+    get:
+      summary: List entries
+      responses:
+        "200":
+          description: OK
+    post:
+      summary: Create entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EntryInput"
+      responses:
+        "201":
+          description: Created
+  /api/entries/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      summary: Get entry
+      responses:
+        "200": { description: OK }
+        "404": { description: Not found }
+    put:
+      summary: Update entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EntryInput"
+      responses:
+        "200": { description: OK }
+        "404": { description: Not found }
+    delete:
+      summary: Delete entry
+      responses:
+        "200": { description: OK }
+        "404": { description: Not found }
+  /api/export:
+    get:
+      summary: Export full dataset
+      responses:
+        "200": { description: OK }
+  /api/import:
+    post:
+      summary: Replace dataset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entries]
+              properties:
+                entries:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Entry"
+      responses:
+        "200": { description: OK }
+  /api/tags/tree:
+    get:
+      summary: Tag hierarchy tree
+      responses:
+        "200": { description: OK }
+  /api/search:
+    get:
+      summary: Boolean search with optional tag prefix filter
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema: { type: string }
+        - name: path
+          in: query
+          required: false
+          schema: { type: string, default: "__ALL__" }
+      responses:
+        "200": { description: OK }
+  /api/external/ddg:
+    get:
+      summary: DuckDuckGo Instant Answer proxy
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+components:
+  schemas:
+    Entry:
+      type: object
+      required: [id, title, url, tags, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        url: { type: string }
+        iconUrl: { type: string }
+        description: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    EntryInput:
+      type: object
+      required: [url]
+      properties:
+        title: { type: string }
+        url: { type: string }
+        iconUrl: { type: string }
+        description: { type: string }
+        tags:
+          type: array
+          items: { type: string }
