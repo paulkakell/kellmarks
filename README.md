@@ -28,16 +28,19 @@ Backend
 - JSON based API
 
 ## Repository Layout
+```text
 .
 ├── index.html
 ├── API.md
 ├── openapi.yaml
 ├── server/
-│ └── app.py
+│   └── app.py
 └── assets/
-├── app.js
-├── app.css
-└── data.json
+    ├── app.js
+    ├── app.css
+    └── data.json
+```
+
 
 ## Running Locally
 
