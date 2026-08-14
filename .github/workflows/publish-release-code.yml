@@ -1,0 +1,78 @@
+name: Publish validated Kellmarks 02.00.00 code
+
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kellmarks-02-00-00-publisher
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event.head_commit.message == 'ci: stage temporary release publisher'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
+      - name: Validate and unpack release payload
+        run: python .release/unpack.py
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: |
+            requirements-dev.txt
+            docs/server/requirements.lock
+      - name: Install dependencies in a fresh environment
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+          python -m pip check
+      - name: Run the complete release gate
+        env:
+          KELLMARKS_DATA_FILE: ${{ runner.temp }}/kellmarks-publish-data.json
+        run: |
+          python -m compileall -q docs/server tests scripts
+          node --check docs/assets/app.js
+          ruff check . --exclude .release
+          mypy
+          bandit -r docs/server -ll -x docs/server/instance
+          python scripts/scan_secrets.py
+          pip-audit --no-deps -r docs/server/requirements.lock
+          python -m pytest
+          python scripts/benchmark.py
+          python scripts/validate_release.py
+      - name: Stage the explicit release scope
+        run: |
+          rm -rf .release
+          git add -- \
+            .env.example \
+            .github/CODEOWNERS \
+            .github/dependabot.yml \
+            .gitignore \
+            CHANGELOG.md \
+            CONTRIBUTING.md \
+            Makefile \
+            README.md \
+            SECURITY.md \
+            VERSION \
+            docs \
+            pyproject.toml \
+            requirements-dev.txt \
+            scripts \
+            tests
+          git add -u -- .release
+          git diff --cached --check
+          git status --short
+      - name: Commit and push release code
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'release: harden Kellmarks 02.00.00' \
+            -m 'Resolve SEC-001 through SEC-006 with protected APIs, private atomic storage, strict validation, bounded resources, pinned dependencies, automated tests, SAST, dependency auditing, migration guidance, rollback guidance, and release documentation.'
+          git push origin HEAD:dev
