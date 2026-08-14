@@ -24,7 +24,18 @@ jobs:
           fetch-depth: 0
 
       - name: Apply traceable 02.00.02 badge release
-        run: python scripts/release_020002.py
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("scripts/release_020002.py")
+          source = path.read_text(encoding="utf-8")
+          marker = "badge_test = f'''"
+          if source.count(marker) != 1:
+              raise SystemExit("expected one temporary badge-test marker")
+          path.write_text(source.replace(marker, "badge_test = '''", 1), encoding="utf-8")
+          PY
+          python scripts/release_020002.py
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
