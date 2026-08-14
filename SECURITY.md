@@ -4,6 +4,7 @@
 
 | Version | Supported |
 | --- | --- |
+| 02.00.02 | Yes |
 | 02.00.01 | Yes |
 | 02.00.00 | Yes |
 | 01.xx.xx and earlier | No |

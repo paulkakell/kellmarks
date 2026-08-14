@@ -7,7 +7,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "02.00.01"
+EXPECTED_VERSION = "02.00.02"
 VERSION_PATTERN = re.compile(r"^\d{2}\.\d{2}\.\d{2}$")
 
 
@@ -37,9 +37,12 @@ def main() -> None:
     version_checks = {
         "docs/server/app.py": f'APP_VERSION = "{version}"',
         "docs/assets/app.js": f'const APP_VERSION = "{version}";',
+        "README.md": f"img.shields.io/badge/version-{version}-FFD700",
+        "docs/server/README.md": f"img.shields.io/badge/version-{version}-FFD700",
+        "docs/index.html": f'aria-label="Kellmarks version {version}"',
         "docs/openapi.yaml": f'version: "{version}"',
         "CHANGELOG.md": f"## [{version}]",
-        "docs/releases/02.00.01.md": f"# Kellmarks {version}",
+        "docs/releases/02.00.02.md": f"# Kellmarks {version}",
     }
     for relative, marker in version_checks.items():
         if marker not in read(relative):
@@ -71,6 +74,7 @@ def main() -> None:
     workflow_sources = [
         read(".github/workflows/ci.yml"),
         read(".github/workflows/codeql.yml"),
+        read(".github/workflows/release.yml"),
     ]
     action_reference = re.compile(r"uses:\s+[^@\s]+@([0-9a-f]{40})(?:\s+#.*)?$")
     for workflow in workflow_sources:
@@ -86,6 +90,12 @@ def main() -> None:
     if re.search(r"^KELLMARKS_AUTH_TOKEN=.+$", environment_example, re.MULTILINE):
         fail(".env.example must not contain an authentication token")
 
+    release_workflow = read(".github/workflows/release.yml")
+    if "pull_request_target:" in release_workflow:
+        fail("release workflow must not run with pull_request_target")
+    if "checks: read" not in release_workflow or "contents: write" not in release_workflow:
+        fail("release workflow permissions are incomplete")
+
     parser = StrictHTMLParser()
     parser.feed(read("docs/index.html"))
     parser.close()
@@ -98,7 +108,7 @@ def main() -> None:
         "docs/openapi.yaml",
         "docs/SECURITY_ARCHITECTURE.md",
         "docs/server/README.md",
-        "docs/releases/02.00.01.md",
+        "docs/releases/02.00.02.md",
     ]
     for relative in required_docs:
         read(relative)

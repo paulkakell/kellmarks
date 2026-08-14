@@ -16,7 +16,7 @@ def read(relative: str) -> str:
 
 def test_release_metadata_is_aligned() -> None:
     version = read("VERSION").strip()
-    assert version == "02.00.01"
+    assert version == "02.00.02"
     assert VERSION_PATTERN.fullmatch(version)
     assert kellmarks.APP_VERSION == version
     assert f'const APP_VERSION = "{version}";' in read("docs/assets/app.js")
@@ -25,8 +25,26 @@ def test_release_metadata_is_aligned() -> None:
     assert f"# Kellmarks {version}" in read(f"docs/releases/{version}.md")
 
 
+
+def test_version_badges_are_aligned() -> None:
+    version = read("VERSION").strip()
+    readme = read("README.md")
+    server_readme = read("docs/server/README.md")
+    index = read("docs/index.html")
+    assert f"img.shields.io/badge/version-{version}-FFD700" in readme
+    assert f"docs/releases/{version}.md" in readme
+    assert f"img.shields.io/badge/version-{version}-FFD700" in server_readme
+    assert f"../releases/{version}.md" in server_readme
+    assert f'aria-label="Kellmarks version {version}"' in index
+    assert f">v{version}<" in index
+
+
 def test_permanent_workflows_use_immutable_action_references() -> None:
-    for relative in (".github/workflows/ci.yml", ".github/workflows/codeql.yml"):
+    for relative in (
+        ".github/workflows/ci.yml",
+        ".github/workflows/codeql.yml",
+        ".github/workflows/release.yml",
+    ):
         for line in read(relative).splitlines():
             if "uses:" in line:
                 assert ACTION_PATTERN.search(line.strip()), line

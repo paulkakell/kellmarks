@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Kellmarks 02.00.01 is designed for one trusted owner, local-first operation, and controlled remote access. The primary assets are bookmark confidentiality, bookmark integrity, the bearer token, the private data file, and operational availability.
+Kellmarks 02.00.02 is designed for one trusted owner, local-first operation, and controlled remote access. The primary assets are bookmark confidentiality, bookmark integrity, the bearer token, the private data file, and operational availability.
 
 ## Trust boundaries
 

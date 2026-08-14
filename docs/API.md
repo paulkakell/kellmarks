@@ -1,4 +1,4 @@
-# Kellmarks API 02.00.01
+# Kellmarks API 02.00.02
 
 Default base URL: `http://127.0.0.1:8787`
 
@@ -58,7 +58,7 @@ Rules:
 ```json
 {
   "ok": true,
-  "version": "02.00.01",
+  "version": "02.00.02",
   "dataSchemaVersion": 2,
   "time": "2026-08-13T12:00:00Z"
 }

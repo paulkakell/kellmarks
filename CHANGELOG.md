@@ -2,6 +2,29 @@
 
 All notable changes are recorded here. Kellmarks versions use `Release.Feature.BugFix` in fixed-width `xx.xx.xx` form.
 
+## [02.00.02] - 2026-08-13
+
+### Fixed
+
+- **REL-002:** Synchronized the current release marker across the backend, frontend, API documentation, OpenAPI metadata, security support table, dependency-lock header, release validator, and release notes.
+- **DOC-002:** Replaced plain repository version labeling with aligned release, runtime, data-schema, CI, and CodeQL badges.
+- **UI-001:** Added a compact visible version badge to the application header.
+
+### Added
+
+- **REL-003:** Added a guarded release-promotion workflow that waits for the required main-branch CI and CodeQL checks, then creates `v02.00.02` and publishes the versioned release notes when no matching release exists.
+- Added regression checks for README, server-guide, and application-header badge alignment.
+
+### Security
+
+- The release workflow runs only after the permanent `Security and quality` workflow succeeds on `main`, or through an explicit manual dispatch.
+- Release publication requires successful Python 3.10, Python 3.13, quality/security, and Python and JavaScript/TypeScript CodeQL checks for the exact release commit.
+- The workflow uses pinned actions, exact version validation, least-privilege read permissions plus `contents: write`, and refuses a pre-existing tag that targets another commit.
+
+### Compatibility
+
+This is a non-breaking release metadata, documentation, and visible-label fix. API paths, authentication behavior, configuration fields, data schema 2, dependency versions, storage behavior, and bookmark data formats are unchanged from 02.00.01.
+
 ## [02.00.01] - 2026-08-13
 
 ### Fixed

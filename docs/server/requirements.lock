@@ -1,4 +1,4 @@
-# Runtime dependency lock for Kellmarks 02.00.01.
+# Runtime dependency lock for Kellmarks 02.00.02.
 # Validated by CI with pip check and pip-audit.
 blinker==1.9.0
 click==8.4.2
