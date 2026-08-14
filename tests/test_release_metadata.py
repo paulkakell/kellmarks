@@ -25,7 +25,6 @@ def test_release_metadata_is_aligned() -> None:
     assert f"# Kellmarks {version}" in read(f"docs/releases/{version}.md")
 
 
-
 def test_version_badges_are_aligned() -> None:
     version = read("VERSION").strip()
     readme = read("README.md")
@@ -55,9 +54,12 @@ def test_release_bootstrap_artifacts_are_absent() -> None:
     assert not (ROOT / ".github/workflows/apply-release.yml").exists()
     assert not (ROOT / ".github/workflows/publish-release-code.yml").exists()
     assert not (ROOT / ".github/workflows/release-repair.yml").exists()
+    assert not (ROOT / ".github/workflows/release-version-badges.yml").exists()
     assert not (ROOT / "scripts/release_020001.py").exists()
+    assert not (ROOT / "scripts/release_020002.py").exists()
 
 
 def test_migration_backup_name_preserves_release_history() -> None:
     assert "data.pre-v02.00.00.json" in read("docs/server/app.py")
     assert "data.pre-v02.00.00.json" in read("docs/releases/02.00.01.md")
+    assert "data.pre-v02.00.00.json" in read("docs/releases/02.00.02.md")
