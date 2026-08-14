@@ -4,6 +4,7 @@ import base64
 import hashlib
 import io
 import os
+import runpy
 import tarfile
 from pathlib import Path, PurePosixPath
 
@@ -74,6 +75,9 @@ def main() -> None:
 
     legacy_public_data = ROOT / "docs" / "assets" / "data.json"
     legacy_public_data.unlink(missing_ok=True)
+    fix_script = RELEASE_DIR / "apply_fixes.py"
+    if fix_script.is_file():
+        runpy.run_path(str(fix_script), run_name="__main__")
     version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
     if version != "02.00.00":
         fail(f"unexpected payload version: {version}")
