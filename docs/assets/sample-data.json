@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "exportedAt": "2025-12-16T23:52:53.559951Z",
+  "version": 2,
+  "exportedAt": "2026-08-13T00:00:00Z",
   "entries": [
     {
       "id": "seed-homepage",
@@ -12,20 +12,20 @@
         "tools/homepage",
         "dashboards"
       ],
-      "createdAt": "2025-12-16T23:52:53.559951Z",
-      "updatedAt": "2025-12-16T23:52:53.559951Z"
+      "createdAt": "2026-08-13T00:00:00Z",
+      "updatedAt": "2026-08-13T00:00:00Z"
     },
     {
       "id": "seed-ddg",
       "title": "DuckDuckGo",
       "url": "https://duckduckgo.com/",
       "iconUrl": "https://duckduckgo.com/assets/logo_header.v108.svg",
-      "description": "Search engine. External results appear under internal matches.",
+      "description": "Search engine used by the optional protected external-search proxy.",
       "tags": [
         "search"
       ],
-      "createdAt": "2025-12-16T23:52:53.559951Z",
-      "updatedAt": "2025-12-16T23:52:53.559951Z"
+      "createdAt": "2026-08-13T00:00:00Z",
+      "updatedAt": "2026-08-13T00:00:00Z"
     }
   ]
 }

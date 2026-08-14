@@ -1,25 +1,31 @@
-name: CI
+name: Security and quality
 
 on:
   push:
-    branches: [dev, main]
+    branches: [main, dev]
   pull_request:
-    branches: [dev, main]
+    branches: [main, dev]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
-    name: Test Python ${{ matrix.python-version }}
+  tests:
+    name: Tests on Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.13"]
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -41,11 +47,12 @@ jobs:
         run: python -m pytest
 
   quality-security-build:
-    name: Quality, security, dependencies, and build
+    name: Quality, security, dependencies, and clean build
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
           cache: pip
@@ -71,11 +78,11 @@ jobs:
         run: python scripts/validate_release.py
       - name: Performance regression check
         env:
-          KELLMARKS_DATA_FILE: ${{ runner.temp }}/kellmarks-ci-benchmark.json
+          KELLMARKS_DATA_FILE: ${{ runner.temp }}/kellmarks-benchmark-data.json
         run: python scripts/benchmark.py
       - name: Server smoke test
         env:
-          KELLMARKS_DATA_FILE: ${{ runner.temp }}/kellmarks-ci-smoke.json
+          KELLMARKS_DATA_FILE: ${{ runner.temp }}/kellmarks-smoke-data.json
         run: |
           python docs/server/app.py >"${RUNNER_TEMP}/kellmarks-server.log" 2>&1 &
           server_pid=$!
@@ -95,7 +102,8 @@ jobs:
           if not health_path.is_file():
               raise SystemExit("server health check did not produce a response")
           health = json.loads(health_path.read_text(encoding="utf-8"))
+          expected_version = Path("VERSION").read_text(encoding="utf-8").strip()
           assert health["ok"] is True
-          assert health["version"] == "02.00.00"
+          assert health["version"] == expected_version
           assert health["dataSchemaVersion"] == 2
           PY
