@@ -7,7 +7,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "02.00.00"
+EXPECTED_VERSION = "02.00.01"
 VERSION_PATTERN = re.compile(r"^\d{2}\.\d{2}\.\d{2}$")
 
 
@@ -39,7 +39,7 @@ def main() -> None:
         "docs/assets/app.js": f'const APP_VERSION = "{version}";',
         "docs/openapi.yaml": f'version: "{version}"',
         "CHANGELOG.md": f"## [{version}]",
-        "docs/releases/02.00.00.md": f"# Kellmarks {version}",
+        "docs/releases/02.00.01.md": f"# Kellmarks {version}",
     }
     for relative, marker in version_checks.items():
         if marker not in read(relative):
@@ -98,7 +98,7 @@ def main() -> None:
         "docs/openapi.yaml",
         "docs/SECURITY_ARCHITECTURE.md",
         "docs/server/README.md",
-        "docs/releases/02.00.00.md",
+        "docs/releases/02.00.01.md",
     ]
     for relative in required_docs:
         read(relative)

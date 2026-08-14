@@ -2,6 +2,24 @@
 
 All notable changes are recorded here. Kellmarks versions use `Release.Feature.BugFix` in fixed-width `xx.xx.xx` form.
 
+## [02.00.01] - 2026-08-13
+
+### Fixed
+
+- **PR #1 / CI-001:** Recovered the exact 02.00.00 application tree that passed tests, linting, typing, SAST, dependency auditing, CodeQL, configuration checks, performance checks, and the server smoke test. The prior publisher left only temporary payload files on `dev` after GitHub rejected a workflow-file push.
+- **CI-002:** Replaced invalid or stale GitHub Action references with verified, immutable commits for `actions/checkout` v5, `actions/setup-python` v6, and `github/codeql-action` v4.
+- **CI-003:** Changed the smoke test to derive its expected application version from `VERSION`, removing a release-specific workflow constant.
+- **REL-001:** Removed temporary payload, unpacker, and publisher artifacts from the release tree.
+
+### Added
+
+- Added release-metadata regression tests covering version alignment, immutable workflow pins, migration-history preservation, and removal of the original bootstrap artifacts.
+- Added release notes, rollback instructions, and copy-ready commit notes for the publication repair.
+
+### Compatibility
+
+This is a non-breaking publication and CI fix. API paths, authentication behavior, configuration fields, data schema 2, dependency versions, and bookmark data formats are unchanged from 02.00.00.
+
 ## [02.00.00] - 2026-08-13
 
 ### Breaking

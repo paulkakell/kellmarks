@@ -1,4 +1,4 @@
-# Kellmarks server 02.00.00
+# Kellmarks server 02.00.01
 
 The Flask server serves an explicit frontend allowlist and a protected JSON API. Runtime data is private and is not served by Flask.
 

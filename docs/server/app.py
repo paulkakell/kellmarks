@@ -25,7 +25,7 @@ from typing import Any, TypeVar, cast
 from flask import Flask, Response, g, jsonify, request, send_from_directory
 from werkzeug.exceptions import BadRequest, RequestEntityTooLarge, UnsupportedMediaType
 
-APP_VERSION = "02.00.00"
+APP_VERSION = "02.00.01"
 DATA_SCHEMA_VERSION = 2
 DEFAULT_PORT = 8787
 DEFAULT_MAX_REQUEST_BYTES = 1_048_576

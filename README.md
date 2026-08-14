@@ -2,7 +2,7 @@
 
 Kellmarks is a local-first bookmark dashboard with hierarchical tags, Boolean search, import and export, and a small Flask API backed by one private JSON file.
 
-Version: **02.00.00**
+Version: **02.00.01**
 
 ## Security model
 
