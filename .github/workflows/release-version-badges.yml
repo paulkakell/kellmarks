@@ -31,9 +31,14 @@ jobs:
           path = Path("scripts/release_020002.py")
           source = path.read_text(encoding="utf-8")
           marker = "badge_test = f'''"
+          escaped_version = "{{version}}"
           if source.count(marker) != 1:
               raise SystemExit("expected one temporary badge-test marker")
-          path.write_text(source.replace(marker, "badge_test = '''", 1), encoding="utf-8")
+          if source.count(escaped_version) != 6:
+              raise SystemExit("expected six temporary escaped-version markers")
+          source = source.replace(marker, "badge_test = '''", 1)
+          source = source.replace(escaped_version, "{version}")
+          path.write_text(source, encoding="utf-8")
           PY
           python scripts/release_020002.py
 
