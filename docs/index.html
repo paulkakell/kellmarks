@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'">
   <title>Kellmarks</title>
   <link rel="icon" href="favicon.ico">
   <link rel="stylesheet" href="assets/app.css">
@@ -15,12 +17,12 @@
           <img src="assets/logo.svg" alt="Kellmarks logo">
           <div>
             <h1>Kellmarks</h1>
-            <div class="sub">Local first, fast, searchable</div>
+            <div class="sub">Local first, protected, searchable</div>
           </div>
         </div>
 
         <div class="search" role="search">
-          <input id="q" autocomplete="off" placeholder='Search: supports AND OR NOT and ( )  Example: vpn AND (aws OR azure)'>
+          <input id="q" maxlength="512" autocomplete="off" placeholder='Search: supports AND OR NOT and ( )  Example: vpn AND (aws OR azure)'>
           <div class="kbd" title="Shortcut">Ctrl K</div>
         </div>
 
@@ -90,21 +92,21 @@
           </div>
           <div class="field">
             <label for="url">URL</label>
-            <input id="url" required maxlength="2048" placeholder="https://example.com">
-            <div class="help">Tip: include https:// for best behavior.</div>
+            <input id="url" required maxlength="2048" inputmode="url" placeholder="https://example.com">
+            <div class="help">HTTP or HTTPS only. Embedded credentials are rejected.</div>
           </div>
         </div>
 
         <div class="row">
           <div class="field">
             <label for="icon">Icon URL</label>
-            <input id="icon" maxlength="2048" placeholder="https://site/icon.png">
-            <div class="help">Optional. If blank, initials are shown.</div>
+            <input id="icon" maxlength="2048" inputmode="url" placeholder="https://site/icon.png">
+            <div class="help">Optional. HTTP or HTTPS only.</div>
           </div>
           <div class="field">
             <label for="tags">Tags</label>
-            <input id="tags" maxlength="400" placeholder="work/security/tools, aws/iam, personal">
-            <div class="help">Comma separated. Use slashes for hierarchy (example: aws/iam).</div>
+            <input id="tags" maxlength="2592" placeholder="work/security/tools, aws/iam, personal">
+            <div class="help">Up to 32 comma-separated tags. Use slashes for hierarchy.</div>
           </div>
         </div>
 
@@ -121,8 +123,8 @@
     </form>
   </dialog>
 
-  <input type="file" id="filePick" accept="application/json" style="display:none;">
-  <div class="toast" id="toast"></div>
+  <input type="file" id="filePick" accept="application/json,.json" style="display:none;">
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="assets/app.js"></script>
 </body>

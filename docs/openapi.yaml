@@ -1,68 +1,124 @@
 openapi: 3.0.3
 info:
   title: Kellmarks API
-  version: "1.0.0"
+  version: "02.00.00"
+  description: >-
+    Protected local-first bookmark API. Loopback access may be unauthenticated only
+    when the server has no configured token and the request does not traverse a proxy.
 servers:
   - url: http://127.0.0.1:8787
+security:
+  - bearerAuth: []
 paths:
   /api/health:
     get:
-      summary: Health check
+      summary: Health and version check
       responses:
         "200":
-          description: OK
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
   /api/entries:
     get:
       summary: List entries
       responses:
         "200":
-          description: OK
+          description: Entry array
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Entry" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
     post:
-      summary: Create entry
+      summary: Create an entry
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: "#/components/schemas/EntryInput"
+            schema: { $ref: "#/components/schemas/EntryInput" }
       responses:
         "201":
           description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Entry" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "413": { $ref: "#/components/responses/TooLarge" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+        "429": { $ref: "#/components/responses/RateLimited" }
   /api/entries/{id}:
     parameters:
       - name: id
         in: path
         required: true
-        schema: { type: string }
+        schema:
+          type: string
+          maxLength: 80
+          pattern: "^[A-Za-z0-9._:-]+$"
     get:
-      summary: Get entry
+      summary: Get one entry
       responses:
-        "200": { description: OK }
-        "404": { description: Not found }
+        "200":
+          description: Entry
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Entry" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
     put:
-      summary: Update entry
+      summary: Update an entry
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: "#/components/schemas/EntryInput"
+            schema: { $ref: "#/components/schemas/EntryInput" }
       responses:
-        "200": { description: OK }
-        "404": { description: Not found }
+        "200":
+          description: Updated entry
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Entry" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "413": { $ref: "#/components/responses/TooLarge" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+        "429": { $ref: "#/components/responses/RateLimited" }
     delete:
-      summary: Delete entry
+      summary: Delete an entry
       responses:
-        "200": { description: OK }
-        "404": { description: Not found }
+        "200":
+          description: Deleted entry wrapper
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deleted, entry]
+                properties:
+                  deleted: { type: boolean }
+                  entry: { $ref: "#/components/schemas/Entry" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
   /api/export:
     get:
-      summary: Export full dataset
+      summary: Export the complete data store
       responses:
-        "200": { description: OK }
+        "200":
+          description: Export object
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Store" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/import:
     post:
-      summary: Replace dataset
+      summary: Validate and replace the complete data store
       requestBody:
         required: true
         content:
@@ -73,63 +129,201 @@ paths:
               properties:
                 entries:
                   type: array
-                  items:
-                    $ref: "#/components/schemas/Entry"
+                  maxItems: 5000
+                  items: { $ref: "#/components/schemas/Entry" }
       responses:
-        "200": { description: OK }
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [imported, backupCreated]
+                properties:
+                  imported: { type: integer, minimum: 0 }
+                  backupCreated: { type: boolean }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "413": { $ref: "#/components/responses/TooLarge" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+        "429": { $ref: "#/components/responses/RateLimited" }
   /api/tags/tree:
     get:
-      summary: Tag hierarchy tree
+      summary: Return the hierarchical tag tree
       responses:
-        "200": { description: OK }
+        "200":
+          description: Tag tree root
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TagNode" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/search:
     get:
-      summary: Boolean search with optional tag prefix filter
+      summary: Boolean search with optional tag-prefix filtering
       parameters:
         - name: q
           in: query
           required: false
-          schema: { type: string }
+          schema: { type: string, maxLength: 512 }
         - name: path
           in: query
           required: false
-          schema: { type: string, default: "__ALL__" }
+          schema: { type: string, maxLength: 256, default: "__ALL__" }
       responses:
-        "200": { description: OK }
+        "200":
+          description: Search result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [q, path, count, entries]
+                properties:
+                  q: { type: string }
+                  path: { type: string }
+                  count: { type: integer, minimum: 0 }
+                  entries:
+                    type: array
+                    items: { $ref: "#/components/schemas/Entry" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/external/ddg:
     get:
-      summary: DuckDuckGo Instant Answer proxy
+      summary: Bounded DuckDuckGo Instant Answer proxy
       parameters:
         - name: q
           in: query
           required: true
-          schema: { type: string }
+          schema: { type: string, minLength: 1, maxLength: 256 }
       responses:
-        "200": { description: OK }
+        "200":
+          description: Filtered external results
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [q, results]
+                properties:
+                  q: { type: string }
+                  results:
+                    type: array
+                    maxItems: 20
+                    items:
+                      type: object
+                      required: [url, title, snippet]
+                      properties:
+                        url: { type: string, format: uri, maxLength: 2048 }
+                        title: { type: string, maxLength: 120 }
+                        snippet: { type: string, maxLength: 280 }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "502":
+          description: External search unavailable
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+      description: Random token from KELLMARKS_AUTH_TOKEN, at least 32 characters.
   schemas:
-    Entry:
+    Health:
       type: object
-      required: [id, title, url, tags, createdAt, updatedAt]
+      required: [ok, version, dataSchemaVersion, time]
       properties:
-        id: { type: string }
-        title: { type: string }
-        url: { type: string }
-        iconUrl: { type: string }
-        description: { type: string }
-        tags:
-          type: array
-          items: { type: string }
-        createdAt: { type: string }
-        updatedAt: { type: string }
+        ok: { type: boolean }
+        version: { type: string, example: "02.00.00" }
+        dataSchemaVersion: { type: integer, example: 2 }
+        time: { type: string, format: date-time }
     EntryInput:
       type: object
       required: [url]
       properties:
-        title: { type: string }
-        url: { type: string }
-        iconUrl: { type: string }
-        description: { type: string }
+        title: { type: string, maxLength: 120 }
+        url: { type: string, format: uri, maxLength: 2048 }
+        iconUrl: { type: string, format: uri, maxLength: 2048 }
+        description: { type: string, maxLength: 600 }
         tags:
           type: array
-          items: { type: string }
+          maxItems: 32
+          items: { type: string, maxLength: 80 }
+    Entry:
+      allOf:
+        - $ref: "#/components/schemas/EntryInput"
+        - type: object
+          required: [id, title, url, tags, createdAt, updatedAt]
+          properties:
+            id:
+              type: string
+              maxLength: 80
+              pattern: "^[A-Za-z0-9._:-]+$"
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+    Store:
+      type: object
+      required: [version, exportedAt, entries]
+      properties:
+        version: { type: integer, example: 2 }
+        exportedAt: { type: string, format: date-time }
+        entries:
+          type: array
+          maxItems: 10000
+          items: { $ref: "#/components/schemas/Entry" }
+    TagNode:
+      type: object
+      required: [name, path, count, children]
+      properties:
+        name: { type: string }
+        path: { type: string }
+        count: { type: integer, minimum: 0 }
+        children:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/TagNode" }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+        requestId: { type: string }
+  responses:
+    BadRequest:
+      description: Invalid request or data
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Bearer authentication required or invalid
+      headers:
+        WWW-Authenticate:
+          schema: { type: string }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Remote, host, or origin policy denied the request
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    TooLarge:
+      description: Request body exceeds the configured limit
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    UnsupportedMediaType:
+      description: Content-Type must be application/json
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    RateLimited:
+      description: Configured request rate exceeded
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
