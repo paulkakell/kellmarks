@@ -1,0 +1,109 @@
+name: Security and quality
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Tests on Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            requirements-dev.txt
+            docs/server/requirements.lock
+      - name: Install dependencies in a fresh environment
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+          python -m pip check
+      - name: Compile Python
+        run: python -m compileall -q docs/server tests scripts
+      - name: Validate JavaScript syntax
+        run: node --check docs/assets/app.js
+      - name: Run unit, integration, and regression tests
+        env:
+          KELLMARKS_DATA_FILE: ${{ runner.temp }}/kellmarks-ci-data-${{ matrix.python-version }}.json
+        run: python -m pytest
+
+  quality-security-build:
+    name: Quality, security, dependencies, and clean build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: |
+            requirements-dev.txt
+            docs/server/requirements.lock
+      - name: Install dependencies in a fresh environment
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+          python -m pip check
+      - name: Static analysis and linting
+        run: |
+          ruff check .
+          mypy
+      - name: SAST and secret pattern scan
+        run: |
+          bandit -r docs/server -ll -x docs/server/instance
+          python scripts/scan_secrets.py
+      - name: Dependency vulnerability audit
+        run: pip-audit --no-deps -r docs/server/requirements.lock
+      - name: Release and configuration validation
+        run: python scripts/validate_release.py
+      - name: Performance regression check
+        env:
+          KELLMARKS_DATA_FILE: ${{ runner.temp }}/kellmarks-benchmark-data.json
+        run: python scripts/benchmark.py
+      - name: Server smoke test
+        env:
+          KELLMARKS_DATA_FILE: ${{ runner.temp }}/kellmarks-smoke-data.json
+        run: |
+          python docs/server/app.py >"${RUNNER_TEMP}/kellmarks-server.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:8787/api/health >"${RUNNER_TEMP}/health.json"; then
+              break
+            fi
+            sleep 0.5
+          done
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          health_path = Path(os.environ["RUNNER_TEMP"]) / "health.json"
+          if not health_path.is_file():
+              raise SystemExit("server health check did not produce a response")
+          health = json.loads(health_path.read_text(encoding="utf-8"))
+          expected_version = Path("VERSION").read_text(encoding="utf-8").strip()
+          assert health["ok"] is True
+          assert health["version"] == expected_version
+          assert health["dataSchemaVersion"] == 2
+          PY

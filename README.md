@@ -1,129 +1,147 @@
-# <img src="docs/assets/logo.svg" alt="Kellmarks logo" width="45" height="45"> Kellmarks
+# Kellmarks
 
-Kellmarks is a minimal, self hosted bookmark homepage designed for speed, clarity, and local ownership of data. It provides a dark themed single page interface with hierarchical tags, advanced search, and a small Flask backend that persists everything to a single JSON file.
+[![Version 02.00.02](https://img.shields.io/badge/version-02.00.02-FFD700?style=flat-square&labelColor=000000)](docs/releases/02.00.02.md)
+[![Latest release](https://img.shields.io/github/v/release/paulkakell/kellmarks?display_name=tag&sort=semver&style=flat-square&label=release)](https://github.com/paulkakell/kellmarks/releases/latest)
+[![Python 3.10 and 3.13](https://img.shields.io/badge/python-3.10%20%7C%203.13-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![Data schema 2](https://img.shields.io/badge/data%20schema-2-FFD700?style=flat-square&labelColor=000000)](docs/API.md)
+[![Security and quality](https://github.com/paulkakell/kellmarks/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/paulkakell/kellmarks/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/paulkakell/kellmarks/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/paulkakell/kellmarks/actions/workflows/codeql.yml)
 
-The project is intentionally simple. There is no build step, no database server, and no external dependencies beyond Python and Flask.
+Kellmarks is a local-first bookmark dashboard with hierarchical tags, Boolean search, import and export, and a small Flask API backed by one private JSON file.
+
+Version: **02.00.02**
+
+## Security model
+
+Version 02.00.00 changes the default trust model.
+
+- The built-in development server is restricted to loopback addresses.
+- Requests arriving from a non-loopback address are denied unless a bearer token is configured.
+- A configured bearer token protects local requests too.
+- Reverse-proxy headers force authentication so a proxy cannot make a remote request appear local.
+- CORS is disabled unless exact origins are configured. Wildcards are rejected.
+- Trusted Host validation is enabled. Wildcards are rejected.
+- Runtime data is stored under `docs/server/instance/` by default and is never served as a static asset.
+- Writes use a cross-process lock, unique temporary files, `fsync`, and atomic replacement.
+- Imports, URLs, tags, requests, queries, and the persistent data file have explicit limits.
+- API responses include restrictive browser security headers and structured request IDs.
+
+See [SECURITY.md](SECURITY.md) and [docs/SECURITY_ARCHITECTURE.md](docs/SECURITY_ARCHITECTURE.md) before exposing the application through a network.
 
 ## Features
 
-- Dark themed, single page bookmark dashboard
-- Card based layout with optional icons and descriptions
-- Hierarchical tags using slash notation (example: cloud/aws/iam)
-- Live tag tree with entry counts
-- Advanced search with AND, OR, NOT, parentheses, and quoted phrases
-- Local first data model stored in `assets/data.json`
-- Import and export bookmarks as JSON
-- Optional DuckDuckGo search proxy
-- OpenAPI specification and API documentation included
-
-## Tech Stack
-
-Frontend
-- Vanilla HTML, CSS, and JavaScript
-- No frameworks and no build tooling
-
-Backend
-- Python with Flask
-- File backed persistence with atomic writes
-- JSON based API
-
-## Repository Layout
-```text
-.
-├── index.html
-├── API.md
-├── openapi.yaml
-├── server/
-│   └── app.py
-└── assets/
-    ├── app.js
-    ├── app.css
-    └── data.json
-```
-
-
-## Running Locally
-
-### Option 1: Static Mode (Read Only)
-
-You can open `index.html` directly in your browser.
-
-Note: In this mode, adding or editing bookmarks is disabled because browsers cannot write to local files.
-
-### Option 2: Flask Server (Full CRUD)
+- Dark single-page bookmark dashboard
+- Hierarchical tags using slash notation, such as `cloud/aws/iam`
+- Boolean search with `AND`, `OR`, `NOT`, parentheses, and quoted phrases
+- HTTP and HTTPS bookmark validation
+- Protected JSON CRUD API
+- Private, atomic file-backed persistence
+- Validated import and export
+- Optional DuckDuckGo Instant Answer proxy with response and rate limits
+- Static read-only demonstration mode
 
 ## Requirements
-- Python 3.9 or newer
-- Flask
 
-## Install dependencies:
-pip install flask
+- Python 3.10 or newer
+- Node.js only for the JavaScript syntax check in CI
 
-## Run the server:
-python server/app.py
+Runtime dependencies are fully pinned in `docs/server/requirements.lock`. Development and security tools are pinned in `requirements-dev.txt`.
 
-By default, the app runs on:
-http://localhost:8787
+## Local installation
 
-The server:
-- Serves the frontend
-- Enables create, update, delete, search, import, and export
-- Writes changes to `assets/data.json`
+```bash
+python -m venv .venv
+source .venv/bin/activate       # Linux or macOS
+# .venv\Scripts\activate        # Windows PowerShell
+python -m pip install --upgrade pip
+python -m pip install -r docs/server/requirements.txt
+python docs/server/app.py
+```
 
-## API Overview
+Open `http://127.0.0.1:8787`.
 
-The backend exposes a simple JSON API, including:
+Local loopback requests do not require a token unless `KELLMARKS_AUTH_TOKEN` or `KELLMARKS_REQUIRE_AUTH=1` is set.
 
-- `/api/items` for CRUD operations
-- `/api/search` for advanced boolean search
-- `/api/tags` for hierarchical tag trees
-- `/api/export` and `/api/import`
-- `/api/duckduckgo` for proxied search results
+## Protected local mode
 
-See `API.md` and `openapi.yaml` for full details.
+Generate a token rather than writing one by hand:
 
-## Data Model
+```bash
+export KELLMARKS_AUTH_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+export KELLMARKS_REQUIRE_AUTH=1
+python docs/server/app.py
+```
 
-All bookmarks are stored in a single JSON file:
+The browser asks for the token and retains it in `sessionStorage` for the current browser session. The token is not placed in URLs or local storage.
 
+## HTTPS reverse-proxy mode
 
-Each entry includes:
-- id
-- title
-- url
-- description
-- tags
-- optional icon URL
+Keep the built-in server on loopback and terminate HTTPS at a maintained reverse proxy:
 
-This design keeps the system portable and easy to back up or version control.
+```bash
+export KELLMARKS_AUTH_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+export KELLMARKS_REQUIRE_AUTH=1
+export KELLMARKS_TRUSTED_HOSTS=bookmarks.example.com
+export KELLMARKS_PUBLIC_ORIGIN=https://bookmarks.example.com
+export KELLMARKS_ENABLE_HSTS=1
+python docs/server/app.py
+```
 
-## Security Notes
+Configure the proxy to preserve `Host`, forward `https://bookmarks.example.com` to `http://127.0.0.1:8787`, remove client-supplied forwarding headers before setting its own, and avoid logging authorization values or URL query strings. The application does not trust forwarding headers for client identity.
 
-This project assumes a trusted environment.
+A production WSGI server may bind inside an isolated container or private network, but TLS must terminate before untrusted traffic reaches it. Bearer tokens must never traverse an untrusted plaintext network. Do not place the token in a query string, cookie, log field, image URL, or repository file.
 
-Out of the box:
-- No authentication is enabled
-- CORS is fully open
-- The DuckDuckGo proxy is unrestricted
+## Static demonstration mode
 
-If exposing this publicly, consider:
-- Adding authentication or reverse proxy protection
-- Restricting CORS to a specific domain
-- Adding rate limiting
-- Running behind HTTPS
+`docs/index.html` can be served without the Flask API. It loads only `docs/assets/sample-data.json` and uses browser-local fallback storage. Static mode is not shared persistence. The former public runtime file `docs/assets/data.json` was removed in 02.00.00.
 
-## Use Cases
+## Development checks
 
-- Personal start page
-- Self hosted bookmark manager
-- Knowledge link hub
-- Lightweight alternative to browser sync services
-- Offline friendly reference dashboard
+```bash
+python -m pip install -r requirements-dev.txt
+make validate
+```
 
-## Philosophy
+`make validate` runs compilation, JavaScript syntax validation, unit/integration/regression tests, coverage, Ruff, mypy, Bandit, the secret-pattern scan, pip-audit, release validation, and the performance budget.
 
-Kellmarks favors durability over complexity. All data is readable, editable, and portable without specialized tooling. The goal is long term usefulness rather than feature churn.
+GitHub Actions repeats the suite on Python 3.10 and 3.13 and runs CodeQL for Python and JavaScript.
+
+## Repository layout
+
+```text
+.
+├── VERSION
+├── CHANGELOG.md
+├── SECURITY.md
+├── requirements-dev.txt
+├── pyproject.toml
+├── tests/
+├── scripts/
+└── docs/
+    ├── index.html
+    ├── API.md
+    ├── openapi.yaml
+    ├── SECURITY_ARCHITECTURE.md
+    ├── assets/
+    │   ├── app.js
+    │   ├── app.css
+    │   └── sample-data.json
+    └── server/
+        ├── app.py
+        ├── requirements.lock
+        └── instance/          # ignored private runtime data
+```
+
+## Upgrade from 01.xx.xx
+
+Back up any existing `docs/assets/data.json` before switching branches. On first start, 02.00.00 validates that legacy file, copies a pre-migration backup into the private instance directory, and writes schema version 2 to the new private location. Set `KELLMARKS_LEGACY_DATA_FILE` when the backup is stored elsewhere. Invalid or unsafe legacy data stops startup rather than being discarded.
+
+Detailed migration and rollback procedures are in [the 02.00.00 release notes](docs/releases/02.00.00.md).
+
+## API
+
+The OpenAPI document is at [docs/openapi.yaml](docs/openapi.yaml), with practical examples in [docs/API.md](docs/API.md).
 
 ## License
 
-Unilicense
+Unlicense.

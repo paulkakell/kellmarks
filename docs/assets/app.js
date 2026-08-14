@@ -1,48 +1,55 @@
 (() => {
+  "use strict";
+
+  const APP_VERSION = "02.00.02";
+  const AUTH_KEY = "kellmarks_api_token_v1";
+  const LOCAL_KEY = "kellmarks_local_fallback_v2";
+  const MAX_IMPORT_BYTES = 1_048_576;
+  const MAX_IMPORT_ENTRIES = 5_000;
+  const MAX_TAGS = 32;
+
   const API = {
-    base: "",
-    health: () => `${API.base}/api/health`,
-    listEntries: () => `${API.base}/api/entries`,
-    getEntry: (id) => `${API.base}/api/entries/${encodeURIComponent(id)}`,
-    createEntry: () => `${API.base}/api/entries`,
-    updateEntry: (id) => `${API.base}/api/entries/${encodeURIComponent(id)}`,
-    deleteEntry: (id) => `${API.base}/api/entries/${encodeURIComponent(id)}`,
-    exportAll: () => `${API.base}/api/export`,
-    importAll: () => `${API.base}/api/import`,
-    tagsTree: () => `${API.base}/api/tags/tree`,
-    search: () => `${API.base}/api/search`,
-    ddg: (q) => `${API.base}/api/external/ddg?q=${encodeURIComponent(q)}`,
-    staticDataFallback: () => `assets/data.json`
+    health: "/api/health",
+    entries: "/api/entries",
+    entry: (id) => `/api/entries/${encodeURIComponent(id)}`,
+    export: "/api/export",
+    import: "/api/import",
+    ddg: (query) => `/api/external/ddg?q=${encodeURIComponent(query)}`,
+    sample: "assets/sample-data.json"
   };
 
-  const LS_KEY = "kellmarks_local_fallback_v1";
+  class HTTPError extends Error {
+    constructor(status, message) {
+      super(message);
+      this.name = "HTTPError";
+      this.status = status;
+    }
+  }
 
-  const $ = (sel) => document.querySelector(sel);
-  const elTree = $("#tree");
-  const elCards = $("#cards");
-  const elEmpty = $("#empty");
-  const elQ = $("#q");
-  const elViewTitle = $("#viewTitle");
-  const elViewMeta = $("#viewMeta");
-  const elHint = $("#hint");
-  const banner = $("#banner");
-  const bannerText = $("#bannerText");
-
+  const $ = (selector) => document.querySelector(selector);
+  const treeElement = $("#tree");
+  const cardsElement = $("#cards");
+  const emptyElement = $("#empty");
+  const queryElement = $("#q");
+  const viewTitleElement = $("#viewTitle");
+  const viewMetaElement = $("#viewMeta");
+  const hintElement = $("#hint");
+  const bannerElement = $("#banner");
+  const bannerTextElement = $("#bannerText");
   const ddgPanel = $("#ddgPanel");
   const ddgIntro = $("#ddgIntro");
   const ddgList = $("#ddgList");
   const ddgNote = $("#ddgNote");
   const ddgStatus = $("#ddgStatus");
-
-  const dlg = $("#editor");
+  const dialog = $("#editor");
   const form = $("#form");
-  const inTitle = $("#title");
-  const inUrl = $("#url");
-  const inIcon = $("#icon");
-  const inTags = $("#tags");
-  const inDesc = $("#desc");
+  const titleInput = $("#title");
+  const urlInput = $("#url");
+  const iconInput = $("#icon");
+  const tagsInput = $("#tags");
+  const descriptionInput = $("#desc");
   const modalTitle = $("#modalTitle");
-  const filePick = $("#filePick");
+  const filePicker = $("#filePick");
   const toast = $("#toast");
 
   const state = {
@@ -51,283 +58,402 @@
     activeQuery: "",
     editingId: null,
     ddgAbort: null,
-    apiReady: false
+    apiReady: false,
+    authenticationCancelled: false
   };
 
-  const nowISO = () => new Date().toISOString();
-  const uid = () => (crypto?.randomUUID ? crypto.randomUUID() : ("id-" + Math.random().toString(16).slice(2) + Date.now().toString(16)));
-
-  function showToast(msg){
-    toast.textContent = msg;
-    toast.classList.add("show");
-    setTimeout(() => toast.classList.remove("show"), 2200);
+  function nowISO() {
+    return new Date().toISOString();
   }
 
-  function safeURL(u){
-    try{
-      const url = new URL(u);
-      return url.href;
-    }catch(e){
+  function uid() {
+    if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") {
+      return `e-${globalThis.crypto.randomUUID().replaceAll("-", "")}`;
+    }
+    return `e-${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`;
+  }
+
+  function showToast(message) {
+    toast.textContent = message;
+    toast.classList.add("show");
+    window.setTimeout(() => toast.classList.remove("show"), 2200);
+  }
+
+  function readAuthToken() {
+    try {
+      return sessionStorage.getItem(AUTH_KEY) || "";
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  function storeAuthToken(token) {
+    try {
+      sessionStorage.setItem(AUTH_KEY, token);
+    } catch (_error) {
+      // A private browsing policy may block session storage. The current request still uses the token.
+    }
+  }
+
+  function requestAuthToken() {
+    const token = window.prompt("Enter the Kellmarks API token for this browser session:");
+    if (!token) {
+      state.authenticationCancelled = true;
+      return "";
+    }
+    if (token.length < 32) {
+      showToast("The API token must contain at least 32 characters");
+      return "";
+    }
+    storeAuthToken(token);
+    return token;
+  }
+
+  function safeURL(value, required = true) {
+    const text = String(value || "").trim();
+    if (!text && !required) {
+      return "";
+    }
+    if (/[\\\s]/u.test(text) || /%(?![0-9A-Fa-f]{2})/u.test(text)) {
+      return null;
+    }
+    try {
+      const parsed = new URL(text);
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return null;
+      }
+      if (parsed.username || parsed.password || !parsed.hostname) {
+        return null;
+      }
+      return parsed.href;
+    } catch (_error) {
       return null;
     }
   }
 
-  function normalizeTags(s){
-    return (s || "")
-      .split(",")
-      .map(x => x.trim())
-      .filter(Boolean)
-      .map(x => x.replace(/\s+/g, " "));
-  }
-
-  function splitPath(path){
-    return (path || "").split("/").map(s => s.trim()).filter(Boolean);
-  }
-
-  function entryText(entry){
-    const fields = [
-      entry.title || "",
-      entry.url || "",
-      entry.description || "",
-      (entry.tags || []).join(" ")
-    ];
-    return fields.join(" ").toLowerCase();
-  }
-
-  async function apiFetch(url, opts){
-    const res = await fetch(url, {
-      headers: { "Content-Type": "application/json" },
-      ...opts
-    });
-    if(!res.ok){
-      const t = await res.text().catch(() => "");
-      throw new Error(`HTTP ${res.status} ${t}`);
-    }
-    const ct = res.headers.get("content-type") || "";
-    if(ct.includes("application/json")) return res.json();
-    return res.text();
-  }
-
-  async function loadFromApi(){
-    const r = await apiFetch(API.listEntries(), { method:"GET" });
-    const list = Array.isArray(r) ? r : r.entries;
-    if(!Array.isArray(list)) throw new Error("Bad entries payload");
-    state.entries = list;
-  }
-
-  async function loadFallback(){
-    try{
-      const r = await fetch(API.staticDataFallback(), { cache:"no-store" });
-      if(r.ok){
-        const obj = await r.json();
-        const list = Array.isArray(obj) ? obj : obj.entries;
-        if(Array.isArray(list) && list.length){
-          state.entries = list;
-          return;
-        }
-      }
-    }catch(e){}
-
-    try{
-      const raw = localStorage.getItem(LS_KEY);
-      if(raw){
-        const list = JSON.parse(raw);
-        if(Array.isArray(list)) state.entries = list;
-      }
-    }catch(e){}
-  }
-
-  function saveFallback(){
-    try{
-      localStorage.setItem(LS_KEY, JSON.stringify(state.entries));
-    }catch(e){}
-  }
-
-  function showBanner(kind, msg, linkText, linkHref){
-    banner.style.display = "block";
-    banner.dataset.kind = kind;
-    if(linkText && linkHref){
-      bannerText.innerHTML = `${escapeHTML(msg)} <a href="${linkHref}" target="_blank" rel="noopener noreferrer">${escapeHTML(linkText)}</a>`;
-    }else{
-      bannerText.textContent = msg;
-    }
-  }
-
-  function hideBanner(){
-    banner.style.display = "none";
-    bannerText.textContent = "";
-    banner.dataset.kind = "";
-  }
-
-  async function initData(){
-    try{
-      await apiFetch(API.health(), { method:"GET" });
-      state.apiReady = true;
-      hideBanner();
-      await loadFromApi();
-    }catch(e){
-      state.apiReady = false;
-      await loadFallback();
-
-      const isFile = location.protocol === "file:";
-      if(isFile){
-        showBanner(
-          "file",
-          "Read only mode. File path pages cannot write to assets/data.json. Run the included server for edits.",
-          "Server quickstart",
-          "server/README.md"
-        );
-      }else{
-        showBanner(
-          "noapi",
-          "API not reachable. Using local fallback storage. Start the server to enable shared JSON persistence.",
-          "Server quickstart",
-          "server/README.md"
-        );
-      }
-    }
-
-    if(!state.entries.length){
-      state.entries = [];
-    }
-  }
-
-  // Boolean query parsing
-  function tokenize(q){
-    const s = (q || "").trim();
-    const out = [];
-    let i = 0;
-    while(i < s.length){
-      const c = s[i];
-      if(/\s/.test(c)){ i++; continue; }
-      if(c === "(" || c === ")"){ out.push({type:c}); i++; continue; }
-      if(c === '"'){
-        let j = i + 1, buf = "";
-        while(j < s.length && s[j] !== '"'){ buf += s[j]; j++; }
-        out.push({type:"TERM", value: buf.toLowerCase()});
-        i = (j < s.length) ? j + 1 : j;
+  function normalizeTags(value) {
+    const values = Array.isArray(value) ? value : String(value || "").split(",");
+    const seen = new Set();
+    const tags = [];
+    for (const raw of values.slice(0, MAX_TAGS + 1)) {
+      const tag = String(raw || "").trim().replace(/\s+/g, " ");
+      if (!tag || tag.length > 80 || tag.startsWith("/") || tag.endsWith("/") || tag.includes("//")) {
         continue;
       }
-      let j = i, w = "";
-      while(j < s.length && !/\s|\(|\)/.test(s[j])){ w += s[j]; j++; }
-      const up = w.toUpperCase();
-      if(up === "AND" || up === "OR" || up === "NOT") out.push({type: up});
-      else out.push({type:"TERM", value: w.toLowerCase()});
-      i = j;
+      const key = tag.toLocaleLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        tags.push(tag);
+      }
     }
+    return tags.slice(0, MAX_TAGS);
+  }
+
+  function cleanEntry(value) {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+    const url = safeURL(value.url);
+    const iconUrl = safeURL(value.iconUrl, false);
+    if (!url || iconUrl === null) {
+      return null;
+    }
+    const rawId = String(value.id || "").trim();
+    const id = /^[A-Za-z0-9._:-]{1,80}$/u.test(rawId) ? rawId : uid();
+    return {
+      id,
+      title: String(value.title || url).trim().slice(0, 120) || url,
+      url,
+      iconUrl,
+      description: String(value.description || "").trim().slice(0, 600),
+      tags: normalizeTags(value.tags),
+      createdAt: String(value.createdAt || nowISO()).slice(0, 64),
+      updatedAt: String(value.updatedAt || nowISO()).slice(0, 64)
+    };
+  }
+
+  async function apiFetch(url, options = {}, allowAuthRetry = true) {
+    const headers = new Headers(options.headers || {});
+    if (options.body && !headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
+    }
+    const token = readAuthToken();
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+
+    const response = await fetch(url, { ...options, headers, cache: "no-store" });
+    if (response.status === 401 && allowAuthRetry && !state.authenticationCancelled) {
+      const supplied = requestAuthToken();
+      if (supplied) {
+        headers.set("Authorization", `Bearer ${supplied}`);
+        return apiFetch(url, { ...options, headers }, false);
+      }
+    }
+    if (!response.ok) {
+      let message = `HTTP ${response.status}`;
+      try {
+        const body = await response.json();
+        if (body && body.error) {
+          message = body.error;
+        }
+      } catch (_error) {
+        // Retain the status-only message for non-JSON failures.
+      }
+      throw new HTTPError(response.status, message);
+    }
+    const contentType = response.headers.get("content-type") || "";
+    return contentType.includes("application/json") ? response.json() : response.text();
+  }
+
+  function showBanner(kind, message, linkText = "", linkHref = "") {
+    bannerElement.style.display = "block";
+    bannerElement.dataset.kind = kind;
+    bannerTextElement.replaceChildren(document.createTextNode(message));
+    if (linkText && linkHref) {
+      bannerTextElement.appendChild(document.createTextNode(" "));
+      const link = document.createElement("a");
+      link.href = linkHref;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = linkText;
+      bannerTextElement.appendChild(link);
+    }
+  }
+
+  function hideBanner() {
+    bannerElement.style.display = "none";
+    bannerElement.dataset.kind = "";
+    bannerTextElement.replaceChildren();
+  }
+
+  function saveLocalEntries() {
+    try {
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(state.entries));
+    } catch (_error) {
+      showToast("Browser storage is unavailable");
+    }
+  }
+
+  async function loadFallback() {
+    try {
+      const response = await fetch(API.sample, { cache: "no-store" });
+      if (response.ok) {
+        const body = await response.json();
+        const list = Array.isArray(body) ? body : body.entries;
+        if (Array.isArray(list)) {
+          state.entries = list.map(cleanEntry).filter(Boolean);
+        }
+      }
+    } catch (_error) {
+      state.entries = [];
+    }
+
+    try {
+      const raw = localStorage.getItem(LOCAL_KEY);
+      if (raw) {
+        const list = JSON.parse(raw);
+        if (Array.isArray(list)) {
+          state.entries = list.map(cleanEntry).filter(Boolean);
+        }
+      }
+    } catch (_error) {
+      // A corrupt local cache is ignored rather than executed or merged.
+    }
+  }
+
+  async function initializeData() {
+    try {
+      await apiFetch(API.health, { method: "GET" });
+      state.entries = await apiFetch(API.entries, { method: "GET" });
+      state.entries = state.entries.map(cleanEntry).filter(Boolean);
+      state.apiReady = true;
+      hideBanner();
+      return;
+    } catch (error) {
+      state.apiReady = false;
+      if (error instanceof HTTPError && [401, 403].includes(error.status)) {
+        state.entries = [];
+        showBanner("locked", "The API is protected. Reload and enter a valid session token to continue.");
+        return;
+      }
+    }
+
+    await loadFallback();
+    if (location.protocol === "file:") {
+      showBanner("file", "Read-only file mode. Run the local server for protected persistence.");
+    } else {
+      showBanner(
+        "noapi",
+        "API unavailable. Changes are stored only in this browser.",
+        "Server guide",
+        "https://github.com/paulkakell/kellmarks/blob/dev/docs/server/README.md"
+      );
+    }
+  }
+
+  function entryText(entry) {
+    return [entry.title, entry.url, entry.description, ...(entry.tags || [])].join(" ").toLowerCase();
+  }
+
+  function tokenize(query) {
+    const text = String(query || "").trim();
+    const output = [];
+    let index = 0;
+    while (index < text.length) {
+      const character = text[index];
+      if (/\s/.test(character)) {
+        index += 1;
+        continue;
+      }
+      if (character === "(" || character === ")") {
+        output.push({ type: character });
+        index += 1;
+        continue;
+      }
+      if (character === '"') {
+        let end = index + 1;
+        let buffer = "";
+        while (end < text.length && text[end] !== '"') {
+          buffer += text[end];
+          end += 1;
+        }
+        output.push({ type: "TERM", value: buffer.toLowerCase() });
+        index = end < text.length ? end + 1 : end;
+        continue;
+      }
+      let end = index;
+      let word = "";
+      while (end < text.length && !/\s|\(|\)/.test(text[end])) {
+        word += text[end];
+        end += 1;
+      }
+      const upper = word.toUpperCase();
+      output.push(
+        ["AND", "OR", "NOT"].includes(upper)
+          ? { type: upper }
+          : { type: "TERM", value: word.toLowerCase() }
+      );
+      index = end;
+    }
+
     const withAnd = [];
-    for(let k=0; k<out.length; k++){
-      const a = out[k];
-      const b = out[k+1];
-      withAnd.push(a);
-      if(!b) break;
-      const aIs = (a.type === "TERM" || a.type === ")");
-      const bIs = (b.type === "TERM" || b.type === "(" || b.type === "NOT");
-      if(aIs && bIs) withAnd.push({type:"AND"});
+    for (let position = 0; position < output.length; position += 1) {
+      const token = output[position];
+      const next = output[position + 1];
+      withAnd.push(token);
+      if (!next) {
+        continue;
+      }
+      if (["TERM", ")"].includes(token.type) && ["TERM", "(", "NOT"].includes(next.type)) {
+        withAnd.push({ type: "AND" });
+      }
     }
     return withAnd;
   }
 
-  function toRPN(tokens){
-    const prec = { "NOT": 3, "AND": 2, "OR": 1 };
-    const rightAssoc = { "NOT": true };
-    const out = [];
-    const ops = [];
-    for(const t of tokens){
-      if(t.type === "TERM"){ out.push(t); continue; }
-      if(t.type === "("){ ops.push(t); continue; }
-      if(t.type === ")"){
-        while(ops.length && ops[ops.length-1].type !== "(") out.push(ops.pop());
-        if(ops.length && ops[ops.length-1].type === "(") ops.pop();
-        continue;
-      }
-      if(t.type === "AND" || t.type === "OR" || t.type === "NOT"){
-        while(ops.length){
-          const top = ops[ops.length-1].type;
-          if(top === "(") break;
-          const pTop = prec[top] || 0;
-          const pT = prec[t.type] || 0;
-          if(pTop > pT || (pTop === pT && !rightAssoc[t.type])) out.push(ops.pop());
-          else break;
+  function toRPN(tokens) {
+    const precedence = { NOT: 3, AND: 2, OR: 1 };
+    const output = [];
+    const operators = [];
+    for (const token of tokens) {
+      if (token.type === "TERM") {
+        output.push(token);
+      } else if (token.type === "(") {
+        operators.push(token);
+      } else if (token.type === ")") {
+        while (operators.length && operators.at(-1).type !== "(") {
+          output.push(operators.pop());
         }
-        ops.push(t);
+        if (operators.length && operators.at(-1).type === "(") {
+          operators.pop();
+        }
+      } else {
+        while (operators.length && operators.at(-1).type !== "(") {
+          const top = operators.at(-1).type;
+          if (precedence[top] > precedence[token.type] || (precedence[top] === precedence[token.type] && token.type !== "NOT")) {
+            output.push(operators.pop());
+          } else {
+            break;
+          }
+        }
+        operators.push(token);
       }
     }
-    while(ops.length) out.push(ops.pop());
-    return out;
-  }
-
-  function evalRPN(rpn, text){
-    const st = [];
-    for(const t of rpn){
-      if(t.type === "TERM"){ st.push(t.value ? text.includes(t.value) : true); continue; }
-      if(t.type === "NOT"){ st.push(!st.pop()); continue; }
-      if(t.type === "AND"){ const b = st.pop(), a = st.pop(); st.push(Boolean(a && b)); continue; }
-      if(t.type === "OR"){ const b = st.pop(), a = st.pop(); st.push(Boolean(a || b)); continue; }
+    while (operators.length) {
+      const operator = operators.pop();
+      if (!["(", ")"].includes(operator.type)) {
+        output.push(operator);
+      }
     }
-    return st.length ? Boolean(st[st.length-1]) : true;
+    return output;
   }
 
-  function matchesQuery(entry, q){
-    const query = (q || "").trim();
-    if(!query) return true;
-    const tokens = tokenize(query);
-    if(!tokens.length) return true;
-    const rpn = toRPN(tokens);
-    return evalRPN(rpn, entryText(entry));
+  function evaluateRPN(rpn, text) {
+    const stack = [];
+    for (const token of rpn) {
+      if (token.type === "TERM") {
+        stack.push(token.value ? text.includes(token.value) : true);
+      } else if (token.type === "NOT") {
+        stack.push(!Boolean(stack.pop()));
+      } else {
+        const right = Boolean(stack.pop());
+        const left = Boolean(stack.pop());
+        stack.push(token.type === "AND" ? left && right : left || right);
+      }
+    }
+    return stack.length ? Boolean(stack.at(-1)) : true;
   }
 
-  function buildTree(entries){
+  function matchesQuery(entry, query) {
+    const text = String(query || "").trim();
+    return !text || evaluateRPN(toRPN(tokenize(text)), entryText(entry));
+  }
+
+  function splitPath(path) {
+    return String(path || "").split("/").map((part) => part.trim()).filter(Boolean);
+  }
+
+  function buildTree(entries) {
     const root = { name: "All", path: "__ALL__", children: new Map(), ids: new Set() };
     const untagged = { name: "Untagged", path: "Untagged", children: new Map(), ids: new Set() };
     root.children.set("Untagged", untagged);
-
-    for(const e of entries){
-      if(!e || !e.id) continue;
-      root.ids.add(e.id);
-
-      const tags = Array.isArray(e.tags) ? e.tags : [];
-      if(!tags.length){
-        untagged.ids.add(e.id);
+    for (const entry of entries) {
+      root.ids.add(entry.id);
+      if (!entry.tags.length) {
+        untagged.ids.add(entry.id);
         continue;
       }
-
-      for(const raw of tags){
-        const tag = String(raw || "").trim();
-        if(!tag) continue;
-        const parts = splitPath(tag);
-        if(!parts.length) continue;
-
-        let cur = root;
-        let acc = "";
-        for(const part of parts){
-          acc = acc ? (acc + "/" + part) : part;
-          if(!cur.children.has(part)){
-            cur.children.set(part, { name: part, path: acc, children: new Map(), ids: new Set() });
+      for (const rawTag of entry.tags) {
+        let current = root;
+        let accumulated = "";
+        for (const part of splitPath(rawTag)) {
+          accumulated = accumulated ? `${accumulated}/${part}` : part;
+          if (!current.children.has(part)) {
+            current.children.set(part, { name: part, path: accumulated, children: new Map(), ids: new Set() });
           }
-          const child = cur.children.get(part);
-          child.ids.add(e.id);
-          cur = child;
+          current = current.children.get(part);
+          current.ids.add(entry.id);
         }
       }
     }
     return root;
   }
 
-  function renderTree(){
-    elTree.innerHTML = "";
+  function renderTree() {
+    treeElement.replaceChildren();
     const tree = buildTree(state.entries);
 
-    const renderNode = (node, depth, canCollapse) => {
+    function renderNode(node, depth, canCollapse) {
       const row = document.createElement("div");
-      row.className = "node" + (state.activePath === node.path ? " active" : "");
-      row.style.marginLeft = depth ? (depth * 14 + "px") : "0";
+      row.className = `node${state.activePath === node.path ? " active" : ""}`;
+      row.style.marginLeft = depth ? `${depth * 14}px` : "0";
 
       const twisty = document.createElement("div");
       twisty.className = "twisty";
-      const hasKids = node.children && node.children.size;
+      const hasChildren = Boolean(node.children && node.children.size);
       let open = true;
-      twisty.textContent = (hasKids && canCollapse) ? "v" : (hasKids ? ">" : " ");
+      twisty.textContent = hasChildren && canCollapse ? "v" : hasChildren ? ">" : " ";
 
       const label = document.createElement("div");
       label.className = "label";
@@ -337,453 +463,414 @@
       count.className = "count";
       count.textContent = String(node.ids ? node.ids.size : 0);
 
-      row.appendChild(twisty);
-      row.appendChild(label);
-      row.appendChild(count);
-
-      const setOpen = (v) => {
-        open = v;
-        if(hasKids && canCollapse) twisty.textContent = open ? "v" : ">";
-      };
-
-      row.addEventListener("click", (ev) => {
-        const onTwisty = ev.target === twisty;
-        if(onTwisty && hasKids && canCollapse){
-          setOpen(!open);
-          ev.stopPropagation();
+      row.append(twisty, label, count);
+      row.addEventListener("click", (event) => {
+        if (event.target === twisty && hasChildren && canCollapse) {
+          open = !open;
+          twisty.textContent = open ? "v" : ">";
+          event.stopPropagation();
           return;
         }
         state.activePath = node.path;
         renderTree();
         renderCards();
       });
+      treeElement.appendChild(row);
 
-      elTree.appendChild(row);
-
-      if(hasKids){
-        const kids = [...node.children.values()];
-        kids.sort((a,b) => (((b.ids ? b.ids.size : 0) - (a.ids ? a.ids.size : 0)) || a.name.localeCompare(b.name)));
-        for(const kid of kids) renderNode(kid, depth + 1, true);
+      if (hasChildren && open) {
+        const children = [...node.children.values()].sort((left, right) => (
+          right.ids.size - left.ids.size || left.name.localeCompare(right.name)
+        ));
+        for (const child of children) {
+          renderNode(child, depth + 1, true);
+        }
       }
-    };
+    }
 
     renderNode(tree, 0, false);
   }
 
-  function filteredEntries(){
-    const q = state.activeQuery;
-    let list = state.entries.filter(e => matchesQuery(e, q));
-
-    if(state.activePath && state.activePath !== "__ALL__"){
-      if(state.activePath === "Untagged"){
-        list = list.filter(e => !(e.tags && e.tags.length));
-      }else{
-        const prefix = state.activePath;
-        list = list.filter(e => (e.tags || []).some(t => {
-          const s = String(t || "");
-          return (s === prefix) || s.startsWith(prefix + "/");
-        }));
-      }
+  function filteredEntries() {
+    let entries = state.entries.filter((entry) => matchesQuery(entry, state.activeQuery));
+    if (state.activePath === "Untagged") {
+      entries = entries.filter((entry) => !entry.tags.length);
+    } else if (state.activePath !== "__ALL__") {
+      entries = entries.filter((entry) => entry.tags.some((tag) => (
+        tag === state.activePath || tag.startsWith(`${state.activePath}/`)
+      )));
     }
-
-    list.sort((a,b) => (a.title || "").localeCompare(b.title || ""));
-    return list;
+    return entries.toSorted((left, right) => left.title.localeCompare(right.title));
   }
 
-  function initials(s){
-    const parts = (s || "").trim().split(/\s+/).filter(Boolean);
-    const a = (parts[0] || "K")[0] || "K";
-    const b = (parts[1] || parts[0] || "M")[0] || "M";
-    return (a + b).toUpperCase();
+  function initials(value) {
+    const parts = String(value || "").trim().split(/\s+/).filter(Boolean);
+    return `${(parts[0] || "K")[0]}${(parts[1] || parts[0] || "M")[0]}`.toUpperCase();
   }
 
-  function cardEl(entry){
+  function createCard(entry) {
     const card = document.createElement("div");
     card.className = "card";
-
-    const row1 = document.createElement("div");
-    row1.className = "row1";
-
+    const row = document.createElement("div");
+    row.className = "row1";
     const icon = document.createElement("div");
     icon.className = "icon";
 
-    if(entry.iconUrl){
-      const img = document.createElement("img");
-      img.alt = "";
-      img.referrerPolicy = "no-referrer";
-      img.src = entry.iconUrl;
-      img.onerror = () => {
-        icon.innerHTML = "";
-        const fb = document.createElement("div");
-        fb.className = "fallback";
-        fb.textContent = initials(entry.title || "Link");
-        icon.appendChild(fb);
-      };
-      icon.appendChild(img);
-    }else{
-      const fb = document.createElement("div");
-      fb.className = "fallback";
-      fb.textContent = initials(entry.title || "Link");
-      icon.appendChild(fb);
+    function addFallbackIcon() {
+      icon.replaceChildren();
+      const fallback = document.createElement("div");
+      fallback.className = "fallback";
+      fallback.textContent = initials(entry.title || "Link");
+      icon.appendChild(fallback);
+    }
+
+    if (entry.iconUrl) {
+      const image = document.createElement("img");
+      image.alt = "";
+      image.referrerPolicy = "no-referrer";
+      image.src = entry.iconUrl;
+      image.addEventListener("error", addFallbackIcon, { once: true });
+      icon.appendChild(image);
+    } else {
+      addFallbackIcon();
     }
 
     const body = document.createElement("div");
     body.style.minWidth = "0";
     body.style.flex = "1";
-
-    const h3 = document.createElement("h3");
-    const a = document.createElement("a");
-    a.href = entry.url;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.textContent = entry.title || entry.url;
-    h3.appendChild(a);
-
+    const heading = document.createElement("h3");
+    const link = document.createElement("a");
+    link.href = entry.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = entry.title || entry.url;
+    heading.appendChild(link);
     const url = document.createElement("div");
     url.className = "url";
     url.textContent = entry.url;
-
-    const desc = document.createElement("p");
-    desc.className = "desc";
-    desc.textContent = entry.description || "";
-
-    body.appendChild(h3);
-    body.appendChild(url);
-    body.appendChild(desc);
-
-    row1.appendChild(icon);
-    row1.appendChild(body);
+    const description = document.createElement("p");
+    description.className = "desc";
+    description.textContent = entry.description;
+    body.append(heading, url, description);
+    row.append(icon, body);
 
     const chips = document.createElement("div");
     chips.className = "chips";
-    for(const t of (entry.tags || [])){
-      const c = document.createElement("button");
-      c.type = "button";
-      c.className = "chip";
-      c.textContent = t;
-      c.title = "View tag: " + t;
-      c.addEventListener("click", (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        state.activePath = t;
+    for (const tag of entry.tags) {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "chip";
+      chip.textContent = tag;
+      chip.title = `View tag: ${tag}`;
+      chip.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        state.activePath = tag;
         renderTree();
         renderCards();
       });
-      chips.appendChild(c);
+      chips.appendChild(chip);
     }
 
     const actions = document.createElement("div");
     actions.className = "card-actions";
-
     const edit = document.createElement("button");
-    edit.className = "mini";
     edit.type = "button";
+    edit.className = "mini";
     edit.textContent = "Edit";
-    edit.onclick = () => openEditor(entry.id);
+    edit.addEventListener("click", () => openEditor(entry.id));
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "mini";
+    remove.textContent = "Delete";
+    remove.addEventListener("click", () => deleteEntry(entry.id));
+    actions.append(edit, remove);
 
-    const del = document.createElement("button");
-    del.className = "mini";
-    del.type = "button";
-    del.textContent = "Delete";
-    del.onclick = () => deleteEntry(entry.id);
-
-    actions.appendChild(edit);
-    actions.appendChild(del);
-
-    card.appendChild(row1);
-    if((entry.tags || []).length) card.appendChild(chips);
+    card.appendChild(row);
+    if (entry.tags.length) {
+      card.appendChild(chips);
+    }
     card.appendChild(actions);
     return card;
   }
 
-  function renderCards(){
-    const list = filteredEntries();
-    const q = state.activeQuery.trim();
-    const pathLabel = state.activePath === "__ALL__" ? "All" : state.activePath;
-
-    elViewTitle.textContent = pathLabel;
-    elViewMeta.textContent = `${list.length} match${list.length === 1 ? "" : "es"}${q ? (` for "${q}"`) : ""}`;
-    elHint.textContent = "Search supports AND OR NOT and parentheses.";
-
-    elCards.innerHTML = "";
-    elEmpty.style.display = "none";
-
-    if(!list.length){
-      elEmpty.style.display = "block";
-      elEmpty.textContent = state.entries.length
-        ? "No matches. Try adjusting the boolean query, or select a different tag path."
-        : "No entries yet. Add one to get started.";
-    }else{
-      for(const e of list) elCards.appendChild(cardEl(e));
+  function renderCards() {
+    const entries = filteredEntries();
+    const query = state.activeQuery.trim();
+    viewTitleElement.textContent = state.activePath === "__ALL__" ? "All" : state.activePath;
+    viewMetaElement.textContent = `${entries.length} match${entries.length === 1 ? "" : "es"}${query ? ` for "${query}"` : ""}`;
+    hintElement.textContent = `Kellmarks ${APP_VERSION}. Search supports AND, OR, NOT, and parentheses.`;
+    cardsElement.replaceChildren();
+    emptyElement.style.display = entries.length ? "none" : "block";
+    emptyElement.textContent = state.entries.length
+      ? "No matches. Adjust the query or tag path."
+      : "No entries are available.";
+    for (const entry of entries) {
+      cardsElement.appendChild(createCard(entry));
     }
-
-    if(q) renderDDG(q);
-    else{
+    if (query && query.length <= 256 && state.apiReady) {
+      renderDDG(query);
+    } else {
       ddgPanel.style.display = "none";
       abortDDG();
     }
   }
 
-  function openEditor(id){
-    if(!state.apiReady && location.protocol === "file:"){
-      showToast("Read only mode");
+  function openEditor(id = null) {
+    if (!state.apiReady && location.protocol === "file:") {
+      showToast("Read-only file mode");
       return;
     }
-    state.editingId = id || null;
-    const e = id ? state.entries.find(x => x.id === id) : null;
-
+    state.editingId = id;
+    const entry = id ? state.entries.find((candidate) => candidate.id === id) : null;
     modalTitle.textContent = id ? "Edit entry" : "Add entry";
-    inTitle.value = e?.title || "";
-    inUrl.value = e?.url || "";
-    inIcon.value = e?.iconUrl || "";
-    inTags.value = (e?.tags || []).join(", ");
-    inDesc.value = e?.description || "";
-
-    try{ dlg.showModal(); }catch(err){ dlg.setAttribute("open", "open"); }
-    setTimeout(() => inTitle.focus(), 60);
+    titleInput.value = entry?.title || "";
+    urlInput.value = entry?.url || "";
+    iconInput.value = entry?.iconUrl || "";
+    tagsInput.value = (entry?.tags || []).join(", ");
+    descriptionInput.value = entry?.description || "";
+    try {
+      dialog.showModal();
+    } catch (_error) {
+      dialog.setAttribute("open", "open");
+    }
+    window.setTimeout(() => titleInput.focus(), 60);
   }
 
-  function closeEditor(){
-    try{ dlg.close(); }catch(err){ dlg.removeAttribute("open"); }
+  function closeEditor() {
+    try {
+      dialog.close();
+    } catch (_error) {
+      dialog.removeAttribute("open");
+    }
     state.editingId = null;
   }
 
-  form.addEventListener("submit", async (ev) => {
-    ev.preventDefault();
-
-    const url = safeURL(inUrl.value.trim());
-    if(!url){
-      showToast("Invalid URL");
-      inUrl.focus();
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const url = safeURL(urlInput.value);
+    const iconUrl = safeURL(iconInput.value, false);
+    if (!url || iconUrl === null) {
+      showToast("URLs must use HTTP or HTTPS and must not include credentials");
+      urlInput.focus();
       return;
     }
-
-    const payload = {
-      title: inTitle.value.trim(),
-      url,
-      iconUrl: inIcon.value.trim(),
-      description: inDesc.value.trim(),
-      tags: normalizeTags(inTags.value)
-    };
-
-    if(state.apiReady){
-      if(state.editingId){
-        await apiFetch(API.updateEntry(state.editingId), { method:"PUT", body: JSON.stringify(payload) });
-      }else{
-        await apiFetch(API.createEntry(), { method:"POST", body: JSON.stringify(payload) });
-      }
-      await loadFromApi();
-    }else{
-      const t = nowISO();
-      if(state.editingId){
-        const i = state.entries.findIndex(x => x.id === state.editingId);
-        if(i >= 0) state.entries[i] = { ...state.entries[i], ...payload, updatedAt: t };
-      }else{
-        state.entries.unshift({ id: uid(), createdAt: t, updatedAt: t, ...payload });
-      }
-      saveFallback();
+    const tags = normalizeTags(tagsInput.value);
+    if (String(tagsInput.value).split(",").filter((tag) => tag.trim()).length > MAX_TAGS) {
+      showToast(`No more than ${MAX_TAGS} tags are allowed`);
+      return;
     }
-
-    renderTree();
-    renderCards();
-    closeEditor();
-    showToast(state.editingId ? "Updated" : "Added");
+    const payload = {
+      title: titleInput.value.trim().slice(0, 120),
+      url,
+      iconUrl,
+      description: descriptionInput.value.trim().slice(0, 600),
+      tags
+    };
+    const editingId = state.editingId;
+    try {
+      if (state.apiReady) {
+        await apiFetch(editingId ? API.entry(editingId) : API.entries, {
+          method: editingId ? "PUT" : "POST",
+          body: JSON.stringify(payload)
+        });
+        state.entries = (await apiFetch(API.entries)).map(cleanEntry).filter(Boolean);
+      } else if (editingId) {
+        const index = state.entries.findIndex((entry) => entry.id === editingId);
+        if (index >= 0) {
+          state.entries[index] = { ...state.entries[index], ...payload, updatedAt: nowISO() };
+        }
+        saveLocalEntries();
+      } else {
+        state.entries.unshift({ id: uid(), createdAt: nowISO(), updatedAt: nowISO(), ...payload });
+        saveLocalEntries();
+      }
+      closeEditor();
+      renderTree();
+      renderCards();
+      showToast(editingId ? "Updated" : "Added");
+    } catch (error) {
+      showToast(error.message || "Save failed");
+    }
   });
 
-  async function deleteEntry(id){
-    const e = state.entries.find(x => x.id === id);
-    if(!e) return;
-    const ok = confirm(`Delete "${e.title || e.url}"?`);
-    if(!ok) return;
-
-    if(state.apiReady){
-      await apiFetch(API.deleteEntry(id), { method:"DELETE" });
-      await loadFromApi();
-    }else{
-      state.entries = state.entries.filter(x => x.id !== id);
-      saveFallback();
+  async function deleteEntry(id) {
+    const entry = state.entries.find((candidate) => candidate.id === id);
+    if (!entry || !window.confirm(`Delete "${entry.title || entry.url}"?`)) {
+      return;
     }
-
-    renderTree();
-    renderCards();
-    showToast("Deleted");
+    try {
+      if (state.apiReady) {
+        await apiFetch(API.entry(id), { method: "DELETE" });
+        state.entries = (await apiFetch(API.entries)).map(cleanEntry).filter(Boolean);
+      } else {
+        state.entries = state.entries.filter((candidate) => candidate.id !== id);
+        saveLocalEntries();
+      }
+      renderTree();
+      renderCards();
+      showToast("Deleted");
+    } catch (error) {
+      showToast(error.message || "Delete failed");
+    }
   }
 
-  $("#addBtn").addEventListener("click", () => openEditor(null));
+  $("#addBtn").addEventListener("click", () => openEditor());
   $("#closeModal").addEventListener("click", closeEditor);
   $("#cancelBtn").addEventListener("click", closeEditor);
 
   let searchTimer = null;
-  elQ.addEventListener("input", () => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => {
-      state.activeQuery = elQ.value || "";
+  queryElement.addEventListener("input", () => {
+    window.clearTimeout(searchTimer);
+    searchTimer = window.setTimeout(() => {
+      state.activeQuery = queryElement.value.slice(0, 512);
       renderCards();
     }, 140);
   });
 
-  window.addEventListener("keydown", (e) => {
-    if((e.ctrlKey || e.metaKey) && (e.key || "").toLowerCase() === "k"){
-      e.preventDefault();
-      elQ.focus();
-      elQ.select();
+  window.addEventListener("keydown", (event) => {
+    if ((event.ctrlKey || event.metaKey) && String(event.key).toLowerCase() === "k") {
+      event.preventDefault();
+      queryElement.focus();
+      queryElement.select();
     }
-    if(e.key === "Escape"){
-      if(dlg.open) closeEditor();
+    if (event.key === "Escape" && dialog.open) {
+      closeEditor();
     }
   });
+
+  function downloadJSON(data) {
+    const blob = new Blob([`${JSON.stringify(data, null, 2)}\n`], { type: "application/json" });
+    const link = document.createElement("a");
+    const objectURL = URL.createObjectURL(blob);
+    link.href = objectURL;
+    link.download = `kellmarks-${APP_VERSION}-export.json`;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(objectURL), 0);
+  }
 
   $("#exportBtn").addEventListener("click", async () => {
-    if(state.apiReady){
-      const obj = await apiFetch(API.exportAll(), { method:"GET" });
-      const blob = new Blob([JSON.stringify(obj, null, 2)], { type:"application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "kellmarks-export.json";
-      a.click();
-      URL.revokeObjectURL(a.href);
-    }else{
-      const obj = { version: 1, exportedAt: nowISO(), entries: state.entries };
-      const blob = new Blob([JSON.stringify(obj, null, 2)], { type:"application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "kellmarks-export.json";
-      a.click();
-      URL.revokeObjectURL(a.href);
+    try {
+      const data = state.apiReady
+        ? await apiFetch(API.export)
+        : { version: 2, exportedAt: nowISO(), entries: state.entries };
+      downloadJSON(data);
+    } catch (error) {
+      showToast(error.message || "Export failed");
     }
   });
 
-  $("#importBtn").addEventListener("click", () => filePick.click());
-
-  filePick.addEventListener("change", async () => {
-    const f = filePick.files && filePick.files[0];
-    if(!f) return;
-    try{
-      const text = await f.text();
-      const obj = JSON.parse(text);
-      const list = Array.isArray(obj) ? obj : obj.entries;
-      if(!Array.isArray(list)) throw new Error("Bad file");
-
-      const cleaned = [];
-      for(const x of list){
-        if(!x) continue;
-        const url = safeURL(String(x.url || "").trim());
-        if(!url) continue;
-        cleaned.push({
-          id: String(x.id || uid()),
-          title: String(x.title || url).slice(0,120),
-          url,
-          iconUrl: String(x.iconUrl || "").slice(0,2048),
-          description: String(x.description || "").slice(0,600),
-          tags: Array.isArray(x.tags) ? x.tags.map(String) : normalizeTags(String(x.tags || "")),
-          createdAt: String(x.createdAt || nowISO()),
-          updatedAt: String(x.updatedAt || nowISO())
-        });
+  $("#importBtn").addEventListener("click", () => filePicker.click());
+  filePicker.addEventListener("change", async () => {
+    const file = filePicker.files?.[0];
+    if (!file) {
+      return;
+    }
+    try {
+      if (file.size > MAX_IMPORT_BYTES) {
+        throw new Error("Import file exceeds 1 MiB");
       }
-      if(!cleaned.length){
-        showToast("No valid entries found");
+      const parsed = JSON.parse(await file.text());
+      const list = Array.isArray(parsed) ? parsed : parsed.entries;
+      if (!Array.isArray(list) || list.length > MAX_IMPORT_ENTRIES) {
+        throw new Error(`Import must contain no more than ${MAX_IMPORT_ENTRIES} entries`);
+      }
+      const cleaned = list.map(cleanEntry);
+      if (cleaned.some((entry) => entry === null) || !cleaned.length) {
+        throw new Error("Import contains invalid or unsafe URLs");
+      }
+      const ids = new Set(cleaned.map((entry) => entry.id));
+      if (ids.size !== cleaned.length) {
+        throw new Error("Import contains duplicate IDs");
+      }
+      if (!window.confirm(`Import ${cleaned.length} entries? This replaces the current list.`)) {
         return;
       }
-      const ok = confirm(`Import ${cleaned.length} entries? This will replace your current list.`);
-      if(!ok) return;
-
-      if(state.apiReady){
-        await apiFetch(API.importAll(), { method:"POST", body: JSON.stringify({ entries: cleaned }) });
-        await loadFromApi();
-      }else{
+      if (state.apiReady) {
+        await apiFetch(API.import, { method: "POST", body: JSON.stringify({ entries: cleaned }) });
+        state.entries = (await apiFetch(API.entries)).map(cleanEntry).filter(Boolean);
+      } else {
         state.entries = cleaned;
-        saveFallback();
+        saveLocalEntries();
       }
-
       state.activePath = "__ALL__";
       renderTree();
       renderCards();
       showToast("Imported");
-    }catch(err){
-      showToast("Import failed");
-    }finally{
-      filePick.value = "";
+    } catch (error) {
+      showToast(error.message || "Import failed");
+    } finally {
+      filePicker.value = "";
     }
   });
 
-  function abortDDG(){
-    if(state.ddgAbort){
-      try{ state.ddgAbort.abort(); }catch(e){}
+  function abortDDG() {
+    if (state.ddgAbort) {
+      state.ddgAbort.abort();
       state.ddgAbort = null;
     }
   }
 
-  function ddgSearchLink(q){
-    return "https://duckduckgo.com/?q=" + encodeURIComponent(q);
-  }
-
-  function escapeHTML(s){
-    return String(s || "").replace(/[&<>"']/g, (m) => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
-    }[m]));
-  }
-
-  async function renderDDG(q){
+  async function renderDDG(query) {
     ddgPanel.style.display = "block";
-    ddgList.innerHTML = "";
-    ddgNote.textContent = "";
+    ddgList.replaceChildren();
+    ddgNote.replaceChildren();
     ddgStatus.textContent = "Loading...";
-    ddgIntro.innerHTML = `Searching externally for <span style="color:rgba(255,255,255,.92);font-weight:720;">${escapeHTML(q)}</span>.`;
-
+    ddgIntro.replaceChildren(
+      document.createTextNode("Searching externally for "),
+      Object.assign(document.createElement("strong"), { textContent: query })
+    );
     abortDDG();
-    const ac = new AbortController();
-    state.ddgAbort = ac;
-
-    try{
-      const res = await fetch(API.ddg(q), { signal: ac.signal, cache:"no-store" });
-      if(!res.ok) throw new Error("HTTP " + res.status);
-      const data = await res.json();
-
+    const controller = new AbortController();
+    state.ddgAbort = controller;
+    try {
+      const data = await apiFetch(API.ddg(query), { signal: controller.signal });
       const items = Array.isArray(data.results) ? data.results : [];
-      if(items.length){
-        for(const it of items.slice(0,10)){
-          const d = document.createElement("div");
-          d.className = "ddg-item";
-
-          const a = document.createElement("a");
-          a.href = it.url;
-          a.target = "_blank";
-          a.rel = "noopener noreferrer";
-          a.textContent = (it.title || "").slice(0, 140) || it.url;
-
-          const t = document.createElement("div");
-          t.className = "t";
-          t.appendChild(a);
-
-          const s = document.createElement("div");
-          s.className = "s";
-          s.textContent = it.snippet || "";
-
-          d.appendChild(t);
-          d.appendChild(s);
-          ddgList.appendChild(d);
+      for (const item of items.slice(0, 10)) {
+        const url = safeURL(item.url);
+        if (!url) {
+          continue;
         }
-        ddgStatus.textContent = `${Math.min(items.length,10)} result${items.length === 1 ? "" : "s"}`;
-        ddgNote.innerHTML = `More: <a href="${ddgSearchLink(q)}" target="_blank" rel="noopener noreferrer">open full DuckDuckGo results</a>.`;
-      }else{
-        ddgStatus.textContent = "No results";
-        ddgNote.innerHTML = `Open full results: <a href="${ddgSearchLink(q)}" target="_blank" rel="noopener noreferrer">DuckDuckGo search</a>.`;
+        const container = document.createElement("div");
+        container.className = "ddg-item";
+        const title = document.createElement("div");
+        title.className = "t";
+        const link = document.createElement("a");
+        link.href = url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = String(item.title || url).slice(0, 140);
+        title.appendChild(link);
+        const snippet = document.createElement("div");
+        snippet.className = "s";
+        snippet.textContent = String(item.snippet || "").slice(0, 280);
+        container.append(title, snippet);
+        ddgList.appendChild(container);
       }
-    }catch(err){
-      if(err && err.name === "AbortError") return;
-      ddgStatus.textContent = "Unavailable";
-      ddgList.innerHTML = "";
-      ddgNote.innerHTML = `Open full results: <a href="${ddgSearchLink(q)}" target="_blank" rel="noopener noreferrer">DuckDuckGo search</a>.`;
-    }finally{
-      state.ddgAbort = null;
+      ddgStatus.textContent = `${ddgList.children.length} result${ddgList.children.length === 1 ? "" : "s"}`;
+      const fullResults = document.createElement("a");
+      fullResults.href = `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
+      fullResults.target = "_blank";
+      fullResults.rel = "noopener noreferrer";
+      fullResults.textContent = "Open full DuckDuckGo results";
+      ddgNote.appendChild(fullResults);
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        ddgStatus.textContent = "Unavailable";
+      }
+    } finally {
+      if (state.ddgAbort === controller) {
+        state.ddgAbort = null;
+      }
     }
   }
 
-  async function boot(){
-    await initData();
+  async function boot() {
+    await initializeData();
     renderTree();
     renderCards();
   }
 
-  boot();
+  boot().catch(() => {
+    showBanner("error", "Kellmarks could not initialize safely.");
+  });
 })();
