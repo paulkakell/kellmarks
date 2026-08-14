@@ -32,10 +32,12 @@ def test_permanent_workflows_use_immutable_action_references() -> None:
                 assert ACTION_PATTERN.search(line.strip()), line
 
 
-def test_original_bootstrap_artifacts_are_absent() -> None:
+def test_release_bootstrap_artifacts_are_absent() -> None:
     assert not (ROOT / ".release").exists()
     assert not (ROOT / ".github/workflows/apply-release.yml").exists()
     assert not (ROOT / ".github/workflows/publish-release-code.yml").exists()
+    assert not (ROOT / ".github/workflows/release-repair.yml").exists()
+    assert not (ROOT / "scripts/release_020001.py").exists()
 
 
 def test_migration_backup_name_preserves_release_history() -> None:
