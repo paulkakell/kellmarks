@@ -1,0 +1,22 @@
+# Deny by default: never send local libraries, backups, .env, or .git to a builder.
+**
+!Dockerfile
+!VERSION
+!LICENSE
+!docker/
+!docker/requirements.txt
+!docker/gunicorn.conf.py
+!docker/healthcheck.py
+!docs/
+!docs/index.html
+!docs/favicon.ico
+!docs/server/
+!docs/server/*.py
+!docs/server/requirements.lock
+!docs/assets/
+!docs/assets/app.js
+!docs/assets/app.css
+!docs/assets/enhancements.js
+!docs/assets/logo.svg
+!docs/assets/sample-data.json
+!docs/assets/site-tags.json

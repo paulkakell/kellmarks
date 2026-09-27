@@ -57,12 +57,24 @@ The [accepted project roadmap](docs/ROADMAP.md) covers all eleven feature areas,
 
 See the [user guide](docs/USER_GUIDE.md) for merge versus replacement, duplicate choices, HTML folder mapping, privacy settings, sorting, recovery and limitations. Tracking: [issue #9](https://github.com/paulkakell/kellmarks/issues/9), [PR #10](https://github.com/paulkakell/kellmarks/pull/10).
 
-## Requirements
+## Installation options
 
-- Python 3.10 or newer
-- Node.js for JavaScript syntax and helper regression checks
+| Option | Use case | Persistence |
+| --- | --- | --- |
+| **[Docker Compose full server](docs/INSTALLATION.md#docker-compose-full-server)** | Recommended server deployment: dashboard + API + production Gunicorn server | Private named Docker volume |
+| **[Docker + HTTPS/Caddy](docs/INSTALLATION.md#https-full-server-with-caddy)** | Remote access with managed TLS certificates | Private library and certificate volumes |
+| [Local Python](docs/INSTALLATION.md#local-python-installation) | Loopback-only personal use and development | Private JSON file |
+| [Static demonstration](docs/INSTALLATION.md#static-demonstration) | Browser-local preview, not a shared server | Browser-local fallback storage |
 
-Runtime dependencies are fully pinned in `docs/server/requirements.lock`. Development and security tools are pinned in `requirements-dev.txt`.
+**[Complete installation and operations guide](docs/INSTALLATION.md)** — prerequisites,
+Linux/macOS/Windows setup, token generation, configuration, standalone Docker,
+reverse proxies, upgrades, rollback, backup/restore, migration and troubleshooting.
+Docker images are built from this repository; no prebuilt registry image is assumed.
+
+Docker includes Python and all runtime dependencies. Local Python mode requires
+Python 3.10 or newer. Node.js is only needed for development checks.
+Runtime dependencies are pinned in `docs/server/requirements.lock`; Docker adds
+pinned production-server dependencies from `docker/requirements.txt`.
 
 ## Local installation
 
@@ -93,20 +105,14 @@ The browser asks for the token and retains it in `sessionStorage` for the curren
 
 ## HTTPS reverse-proxy mode
 
-Keep the built-in server on loopback and terminate HTTPS at a maintained reverse proxy:
-
-```bash
-export KELLMARKS_AUTH_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
-export KELLMARKS_REQUIRE_AUTH=1
-export KELLMARKS_TRUSTED_HOSTS=bookmarks.example.com
-export KELLMARKS_PUBLIC_ORIGIN=https://bookmarks.example.com
-export KELLMARKS_ENABLE_HSTS=1
-python docs/server/app.py
-```
-
-Configure the proxy to preserve `Host`, forward `https://bookmarks.example.com` to `http://127.0.0.1:8787`, remove client-supplied forwarding headers before setting its own, and avoid logging authorization values or URL query strings. The application does not trust forwarding headers for client identity.
-
-A production WSGI server may bind inside an isolated container or private network, but TLS must terminate before untrusted traffic reaches it. Bearer tokens must never traverse an untrusted plaintext network. Do not place the token in a query string, cookie, log field, image URL, or repository file.
+Use the production [Docker HTTPS deployment](docs/INSTALLATION.md#https-full-server-with-caddy)
+with the included Caddy overlay, or connect an
+[existing HTTPS reverse proxy](docs/INSTALLATION.md#using-an-existing-reverse-proxy)
+to the loopback-published Docker service. Do not run Flask's development server
+as a production service. Bearer tokens must never traverse an untrusted plaintext
+network; authentication, exact trusted hosts and public-origin validation remain
+required. The full guide includes DNS, ports, certificate persistence and proxy
+header configuration.
 
 ## Static demonstration mode
 

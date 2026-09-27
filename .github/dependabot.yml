@@ -25,3 +25,17 @@ updates:
       codeql:
         patterns:
           - "github/codeql-action/*"
+  - package-ecosystem: pip
+    directory: /docker
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+  - package-ecosystem: docker
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
