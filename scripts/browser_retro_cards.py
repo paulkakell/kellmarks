@@ -22,6 +22,21 @@ def settle(page: Any) -> None:
     page.evaluate("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))")
 
 
+def point_over_link(page: Any, locator: Any, target: str) -> tuple[float, float]:
+    """Raw mouse/touch coordinates need visible hit targets, unlike locator.click."""
+    page.bring_to_front()
+    locator.evaluate("el => el.closest('.card').scrollIntoView({block:'center', inline:'nearest'})")
+    settle(page)
+    point = center(locator)
+    hit = page.evaluate("""([x,y]) => {
+        const element = document.elementFromPoint(x,y);
+        return {href: element?.closest('a')?.getAttribute('href'),
+                element: element?.outerHTML, point: [x,y], scrollY};
+    }""", point)
+    assert hit.get("href") == target, hit
+    return point
+
+
 def opened_page(context: Any, page: Any, action: Any, target: str) -> None:
     """Check a real browser navigation, not a mocked window.open call."""
     # Native middle/modifier clicks can create background tabs without an
@@ -146,10 +161,12 @@ def run_retro_card_scenarios(browser: Any, server: Any) -> list[str]:
         expect(link).to_be_focused()
         assert link.evaluate("el => getComputedStyle(el,'::after').outlineStyle") == "solid"
         opened_page(context, page, lambda: page.keyboard.press("Enter"), target)
-        opened_page(context, page, lambda: page.mouse.click(*center(selected.locator(".icon")), button="middle"), target)
+        middle_point = point_over_link(page, selected.locator(".icon"), target)
+        opened_page(context, page, lambda: page.mouse.click(*middle_point, button="middle"), target)
+        modified_point = point_over_link(page, selected.locator(".desc"), target)
         page.keyboard.down("Control")
         try:
-            opened_page(context, page, lambda: page.mouse.click(*center(selected.locator(".desc"))), target)
+            opened_page(context, page, lambda: page.mouse.click(*modified_point), target)
         finally:
             page.keyboard.up("Control")
         completed.append("single link tab stop, whole-card focus, Enter, middle/modifier click and safe popup/referrer behavior")
@@ -192,7 +209,8 @@ def run_retro_card_scenarios(browser: Any, server: Any) -> list[str]:
         selected = card(page, "Retro terminal")
         selected.scroll_into_view_if_needed()
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
-        opened_page(context, page, lambda: page.touchscreen.tap(*center(selected.locator(".icon"))), target)
+        touch_point = point_over_link(page, selected.locator(".icon"), target)
+        opened_page(context, page, lambda: page.touchscreen.tap(*touch_point), target)
         selected.get_by_role("button", name="Edit", exact=True).tap()
         expect(page.locator("#editor")).to_be_visible()
         page.locator("#cancelBtn").tap()
