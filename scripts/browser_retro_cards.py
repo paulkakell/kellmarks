@@ -2,10 +2,50 @@
 from __future__ import annotations
 
 import os
+import threading
+from contextlib import contextmanager
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
 from playwright.sync_api import expect
+
+
+@contextmanager
+def destination_server():
+    """Serve a real destination, including native background-tab requests.
+
+    A route mock can miss a tab's first navigation. Counting requests on this
+    disposable loopback server tests real navigation and action isolation instead.
+    """
+    visits: list[str] = []
+    body = b"<!doctype html><title>Destination</title><h1>Bookmark destination</h1>"
+
+    class Destination(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path.split("?", 1)[0] != "/destination":
+                self.send_error(404)
+                return
+            visits.append(self.path)
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *_args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Destination)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{server.server_port}", visits
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 
 def card(page: Any, title: str) -> Any:
@@ -62,25 +102,21 @@ def choose_theme(page: Any, preset: str) -> None:
 
 def run_retro_card_scenarios(browser: Any, server: Any) -> list[str]:
     completed: list[str] = []
-    with server(external=False) as base:
-        target = base + "/destination?source=card#details"
+    with server(external=False) as base, destination_server() as (destination, visits):
+        target = destination + "/destination?source=card#details"
         entries = [
             {"id": "retro", "title": "Retro terminal", "url": target,
              "description": "Documentation, reference material and classic computing.",
              "tags": ["computing/retro", "reference"]},
-            {"id": "plain", "title": "Plain bookmark", "url": base + "/destination?plain=1",
+            {"id": "plain", "title": "Plain bookmark", "url": destination + "/destination?plain=1",
              "description": "An untagged card.", "tags": []},
-            {"id": "delete", "title": "Delete test", "url": base + "/destination?delete=1", "tags": []},
+            {"id": "delete", "title": "Delete test", "url": destination + "/destination?delete=1", "tags": []},
         ]
         external: list[str] = []
-        visits: list[str] = []
 
         def route_request(route):
             url = route.request.url
-            if url.startswith(base + "/destination"):
-                visits.append(url)
-                route.fulfill(content_type="text/html", body="<h1>Bookmark destination</h1>")
-            elif url.startswith(base):
+            if url.startswith(base + "/") or url.startswith(destination + "/"):
                 route.continue_()
             else:
                 external.append(url)
