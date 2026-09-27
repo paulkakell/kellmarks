@@ -1,6 +1,6 @@
 # Kellmarks
 
-[![Version 02.00.02](https://img.shields.io/badge/version-02.00.02-FFD700?style=flat-square&labelColor=000000)](docs/releases/02.00.02.md)
+[![Version 02.00.03](https://img.shields.io/badge/version-02.00.03-FFD700?style=flat-square&labelColor=000000)](docs/releases/02.00.03.md)
 [![Latest release](https://img.shields.io/github/v/release/paulkakell/kellmarks?display_name=tag&sort=semver&style=flat-square&label=release)](https://github.com/paulkakell/kellmarks/releases/latest)
 [![Python 3.10 and 3.13](https://img.shields.io/badge/python-3.10%20%7C%203.13-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![Data schema 2](https://img.shields.io/badge/data%20schema-2-FFD700?style=flat-square&labelColor=000000)](docs/API.md)
@@ -9,7 +9,7 @@
 
 Kellmarks is a local-first bookmark dashboard with hierarchical tags, Boolean search, import and export, and a small Flask API backed by one private JSON file.
 
-Version: **02.00.02**
+Version: **02.00.03**
 
 ## Security model
 

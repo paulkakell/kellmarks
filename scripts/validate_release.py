@@ -7,7 +7,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "02.00.02"
+EXPECTED_VERSION = "02.00.03"
 VERSION_PATTERN = re.compile(r"^\d{2}\.\d{2}\.\d{2}$")
 
 
@@ -42,7 +42,7 @@ def main() -> None:
         "docs/index.html": f'aria-label="Kellmarks version {version}"',
         "docs/openapi.yaml": f'version: "{version}"',
         "CHANGELOG.md": f"## [{version}]",
-        "docs/releases/02.00.02.md": f"# Kellmarks {version}",
+        "docs/releases/02.00.03.md": f"# Kellmarks {version}",
     }
     for relative, marker in version_checks.items():
         if marker not in read(relative):
@@ -84,6 +84,13 @@ def main() -> None:
             if not action_reference.search(line.strip()):
                 fail(f"GitHub Action is not pinned to a full commit SHA: {line.strip()}")
 
+    codeql_pins = re.findall(
+        r"uses:\s+github/codeql-action/(?:init|autobuild|analyze)@([0-9a-f]{40})",
+        read(".github/workflows/codeql.yml"),
+    )
+    if len(codeql_pins) != 3 or len(set(codeql_pins)) != 1:
+        fail("CodeQL init, autobuild, and analyze must use the same immutable revision")
+
     environment_example = read(".env.example")
     if "KELLMARKS_REMOTE_ACCESS" in environment_example:
         fail("obsolete non-loopback development-server configuration remains")
@@ -108,7 +115,7 @@ def main() -> None:
         "docs/openapi.yaml",
         "docs/SECURITY_ARCHITECTURE.md",
         "docs/server/README.md",
-        "docs/releases/02.00.02.md",
+        "docs/releases/02.00.03.md",
     ]
     for relative in required_docs:
         read(relative)

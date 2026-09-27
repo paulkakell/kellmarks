@@ -16,7 +16,7 @@ def read(relative: str) -> str:
 
 def test_release_metadata_is_aligned() -> None:
     version = read("VERSION").strip()
-    assert version == "02.00.02"
+    assert version == "02.00.03"
     assert VERSION_PATTERN.fullmatch(version)
     assert kellmarks.APP_VERSION == version
     assert f'const APP_VERSION = "{version}";' in read("docs/assets/app.js")
@@ -63,3 +63,25 @@ def test_migration_backup_name_preserves_release_history() -> None:
     assert "data.pre-v02.00.00.json" in read("docs/server/app.py")
     assert "data.pre-v02.00.00.json" in read("docs/releases/02.00.01.md")
     assert "data.pre-v02.00.00.json" in read("docs/releases/02.00.02.md")
+
+
+def test_codeql_steps_use_one_immutable_revision() -> None:
+    steps = re.findall(
+        r"uses:\s+github/codeql-action/(init|autobuild|analyze)@([0-9a-f]{40})",
+        read(".github/workflows/codeql.yml"),
+    )
+    assert sorted(name for name, _ in steps) == ["analyze", "autobuild", "init"]
+    assert len({revision for _, revision in steps}) == 1
+
+
+def test_dependabot_groups_codeql_updates() -> None:
+    configuration = read(".github/dependabot.yml")
+    actions = configuration.split("package-ecosystem: github-actions", 1)[1]
+    assert "target-branch: dev" in actions
+    assert re.search(r"(?m)^    groups:\n      codeql:\n        patterns:\n", actions)
+    assert '- "github/codeql-action/*"' in actions
+
+
+def test_020003_preparation_files_are_absent() -> None:
+    assert not (ROOT / ".github/workflows/consolidate-020003.yml").exists()
+    assert not (ROOT / "scripts/prepare_020003.py").exists()
