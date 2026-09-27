@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Kellmarks 02.01.00 is designed for one trusted owner, local-first operation, and controlled remote access. The primary assets are bookmark confidentiality, bookmark integrity, the bearer token, the private data file, and operational availability.
+Kellmarks 02.01.01 is designed for one trusted owner, local-first operation, and controlled remote access. The primary assets are bookmark confidentiality, bookmark integrity, the bearer token, the private data file, and operational availability.
 
 ## Trust boundaries
 
@@ -99,6 +99,8 @@ Flask serves only:
 - `/favicon.ico`
 - `/assets/app.css`
 - `/assets/app.js`
+- `/assets/enhancements.js`
+- `/assets/site-tags.json`
 - `/assets/logo.svg`
 - `/assets/sample-data.json`
 
@@ -179,3 +181,14 @@ The preview response may contain bookmark URLs and normalized content. It has th
 `KELLMARKS_EXTERNAL_REQUESTS=0` denies DDG before opening an upstream connection and removes remote sources from `img-src`. The dashboard fails closed when the health capability is absent. Remote icon consent lives only in page memory and resets on reload. Disabling icons stops future application-created image loads; it cannot undo requests already sent. Operator setting changes require restart and open-page reload. The switch is not a system-wide egress firewall and does not block explicit navigation to a saved website. Future metadata, health, preservation and AI routes must implement the same central policy; those routes do not exist in this release.
 
 No authentication or authorization model is widened; no arbitrary server-side URL fetching is added; no runtime dependency is changed. Browser-test dependencies are separate development-only tools and receive their own CI audit. Whole-library backups remain a single rolling `.bak`, not the future multi-snapshot recovery or Trash feature. Keep independent copies before replacing the backup or restoring.
+
+
+## 02.01.01 dashboard egress and local preferences
+
+Favicon fallback is computed in the browser from the bookmark origin only, using HTTPS `/favicon.ico`. It never sends saved paths, queries or fragments to an icon service, and it does not add arbitrary URL fetching to the server. The existing session-only image opt-in, image security policy and operator denial continue to apply; failed loads show initials. As with explicit remote icons, contacting a site reveals the browser's network address and may be subject to normal browser cookie behavior.
+
+Site-tag suggestions are local, bounded and creation-only. They reuse validated stored tags, bundled site rules or a normalized hostname. No metadata scraping, external classification service or AI model is involved. Imported or existing data is not implicitly rewritten.
+
+Theme preferences are browser-local, not secrets or shared-store fields. Only the five expected six-digit hex color values and known preset identifiers are accepted. CSS URLs and arbitrary style properties are not accepted. Invalid storage falls back to gold/black; storage exceptions do not prevent app initialization. Custom contrast warnings do not impose a forced palette.
+
+The footer adds one automatic, server-side egress path: the fixed public GitHub latest-release endpoint for this repository. Normal API authorization gates `/api/version`. Incoming tokens, cookies and bookmark data are never forwarded. Redirects are rejected before following their targets; a four-second socket timeout and 256 KiB read limit bound requests. A process-local lock and one-hour success/five-minute failure cache limit upstream traffic. This is a status check, not an updater. All failures remain explicit rather than falsely asserting that software is current. `KELLMARKS_EXTERNAL_REQUESTS=0` short-circuits the lookup, and health checks do not fetch releases. Static mode does not bypass the same-origin connection policy to contact GitHub directly.

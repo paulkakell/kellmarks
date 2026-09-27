@@ -1,4 +1,4 @@
-# Kellmarks API 02.01.00
+# Kellmarks API 02.01.01
 
 Default base URL: `http://127.0.0.1:8787`
 
@@ -58,7 +58,7 @@ Rules:
 ```json
 {
   "ok": true,
-  "version": "02.01.00",
+  "version": "02.01.01",
   "dataSchemaVersion": 2,
   "time": "2026-08-13T12:00:00Z"
 }
@@ -237,3 +237,26 @@ if input("Apply this reviewed import? Type yes: ") == "yes":
 Apply revalidates the entire candidate under the store lock. A mismatching revision returns `409`; preview again instead of ignoring the conflict. A missing/malformed revision returns `400`. Success includes the legacy `imported`/`backupCreated` fields plus `mode`, `added`, `updated` and `totalCount`. The original no-mode `/api/import` contract still replaces the collection and does not require a revision. New dashboard code never uses this unguarded compatibility path.
 
 `GET /api/health` adds `externalRequestsAllowed`. `KELLMARKS_EXTERNAL_REQUESTS=0` makes `/api/external/ddg` return `403` before any upstream request. Authentication and other security gates still run first. The default `1` preserves direct API behavior; ordinary dashboard search no longer invokes DDG automatically.
+
+
+## Version status — `GET /api/version` (02.01.01)
+
+Uses the same authentication as other API routes. Returns HTTP 200 with status data even when GitHub is unavailable or external requests are disabled; authentication failures remain 401/403. No parameters are accepted to change the upstream URL or bypass caching.
+
+```json
+{
+  "currentVersion": "02.01.01",
+  "latestVersion": "02.01.01",
+  "status": "current",
+  "releaseUrl": "https://github.com/paulkakell/kellmarks/releases/tag/02.01.01",
+  "checkedAt": "2026-09-27T19:00:00Z"
+}
+```
+
+`status` is one of `current`, `update_available`, `ahead`, `unavailable`, `no_release` or `disabled`. `latestVersion` is null when no valid release was retrieved; `checkedAt` is null when checking is disabled, otherwise the timestamp of the last upstream attempt. Version components are compared numerically. Prereleases and nonnumeric tags are not treated as stable releases. Successful results are cached for 3,600 seconds and unsuccessful attempts for 300 seconds, per process.
+
+The server fetches one fixed HTTPS GitHub endpoint, rejects redirects, limits upstream time to four seconds per network operation and response size to 262,144 bytes, and forwards no incoming authorization, cookies, query or bookmark data. `KELLMARKS_EXTERNAL_REQUESTS=0` returns `disabled` without network access. `/api/health` remains a local-only health and installed-version response.
+
+## Creation-only tags (02.01.01)
+
+`POST /api/entries` now fills normalized empty tags (missing, null, empty list, empty string or whitespace-only values) with up to five local site suggestions. Existing same-host tags have precedence over bundled site rules and the `sites/<hostname>` fallback. Nonempty explicit tags retain their existing validation and values. `PUT /api/entries/<id>` never runs this logic: an empty tag list clears tags, and omitted tags preserve the stored value. Import, export, store loading and migration do not generate tags. An omitted icon remains an empty stored `iconUrl`; favicon fallback is a consent-controlled frontend display behavior.

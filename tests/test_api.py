@@ -128,10 +128,14 @@ def test_entry_and_import_limits(make_app) -> None:
 
 def test_search_and_tag_tree(client) -> None:
     assert client.post("/api/entries", json=create_payload()).status_code == 201
-    assert client.post(
+    personal = client.post(
         "/api/entries",
         json={"title": "Personal", "url": "https://personal.example", "tags": []},
-    ).status_code == 201
+    )
+    assert personal.status_code == 201
+    assert client.put(
+        f"/api/entries/{personal.get_json()['id']}", json={"tags": []}
+    ).status_code == 200
 
     search = client.get("/api/search", query_string={"q": "example AND security", "path": "work"})
     assert search.status_code == 200

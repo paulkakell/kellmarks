@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kellmarks API
-  version: "02.01.00"
+  version: "02.01.01"
   description: >-
     Protected local-first bookmark API. Loopback access may be unauthenticated only
     when the server has no configured token and the request does not traverse a proxy.
@@ -12,7 +12,7 @@ security:
 paths:
   /api/health:
     get:
-      summary: Health and version check
+      summary: Local health and installed version
       responses:
         "200":
           description: Healthy
@@ -20,6 +20,22 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Health"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/version:
+    get:
+      summary: Cached stable-release status
+      description: >-
+        Checks only the fixed public Kellmarks GitHub release endpoint. Normal API
+        authentication applies. External-request denial returns disabled without
+        network access. Successes are cached for one hour, failures for five minutes.
+      responses:
+        "200":
+          description: Version status, including unavailable and disabled states
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionStatus"
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
   /api/entries:
@@ -274,6 +290,17 @@ components:
       bearerFormat: opaque
       description: Random token from KELLMARKS_AUTH_TOKEN, at least 32 characters.
   schemas:
+    VersionStatus:
+      type: object
+      required: [currentVersion, latestVersion, status, releaseUrl, checkedAt]
+      properties:
+        currentVersion: { type: string, example: "02.01.01" }
+        latestVersion: { type: string, nullable: true, example: "02.01.01" }
+        status:
+          type: string
+          enum: [current, update_available, ahead, unavailable, no_release, disabled]
+        releaseUrl: { type: string, format: uri }
+        checkedAt: { type: string, format: date-time, nullable: true }
     ImportEntry:
       allOf:
         - $ref: "#/components/schemas/EntryInput"
@@ -343,7 +370,7 @@ components:
       required: [ok, version, dataSchemaVersion, externalRequestsAllowed, time]
       properties:
         ok: { type: boolean }
-        version: { type: string, example: "02.01.00" }
+        version: { type: string, example: "02.01.01" }
         dataSchemaVersion: { type: integer, example: 2 }
         externalRequestsAllowed: { type: boolean, example: true }
         time: { type: string, format: date-time }

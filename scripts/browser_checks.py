@@ -12,6 +12,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
+from browser_enhancements import run_feature_scenarios
+from browser_network import intercept_requests
 from playwright.sync_api import expect, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -93,13 +95,16 @@ def main() -> None:
                     if url.startswith(base + "/api/external/ddg"):
                         lookups.append(url)
                         route.fulfill(json={"results": [{"url": "https://example.test/result", "title": "Mock result"}]})
+                    elif url == base + "/api/version":
+                        version = (ROOT / "VERSION").read_text().strip()
+                        route.fulfill(json={"currentVersion": version, "latestVersion": version, "status": "current", "checkedAt": None})
                     elif not url.startswith(base):
                         external.append(url)
                         route.abort()
                     else:
                         route.continue_()
 
-                page.route("**/*", routing)
+                intercept_requests(page, routing)
                 initial = [
                     bookmark("https://a.test/", "Alpha", id="alpha", iconUrl="https://icons.test/a.png", createdAt="2020-01-01T00:00:00Z", updatedAt="2026-09-20T00:00:00Z"),
                     bookmark("https://z.test/", "Zulu", id="zulu", createdAt="2026-09-27T00:00:00Z", updatedAt="2026-09-01T00:00:00Z"),
@@ -122,12 +127,15 @@ def main() -> None:
                 page.locator("#q").fill("")
                 expect(page.locator("#cards h3")).to_have_count(2)
                 page.locator("#remoteIcons").check()
-                page.wait_for_timeout(150)
-                assert external == ["https://icons.test/a.png"]
+                # Icons are lazy-loaded; request completion is not a 150 ms guarantee.
+                for icon in page.locator(".icon").all():
+                    icon.scroll_into_view_if_needed()
+                expect(page.locator(".icon .fallback")).to_have_count(2)
+                assert set(external) == {"https://icons.test/a.png", "https://z.test/favicon.ico"}, external
                 page.reload()
                 expect(page.locator("#remoteIcons")).not_to_be_checked()
                 expect(page.locator("#cards h3")).to_have_count(2)
-                assert len(external) == 1
+                assert len(external) == 2
                 completed.append("sorting, explicit web search, session-only icon consent")
 
                 incoming = [bookmark("https://a.test/", "New title", tags=["research"]), bookmark("https://new.test/", "New bookmark")]
@@ -169,7 +177,7 @@ def main() -> None:
                 page.locator("#applyImport").click()
                 expect(page.locator("#importDialog")).not_to_be_visible()
                 assert any(item["tags"] == ["Research"] for item in page.request.get(base + "/api/entries").json())
-                assert len(external) == 1
+                assert len(external) == 2
                 completed.append("browser HTML import is text-only and maps folders to tags")
 
                 choose_file(page, [])
@@ -207,8 +215,11 @@ def main() -> None:
                 expect(page.locator("#webSearchBtn")).to_be_disabled()
                 expect(page.locator("#remoteIcons")).to_be_disabled()
                 assert page.request.get(base + "/api/external/ddg?q=private").status == 403
+                expect(page.locator("#versionStatus")).to_contain_text("disabled by operator")
+                assert page.request.get(base + "/api/version").json()["status"] == "disabled"
                 page.close()
                 completed.append("operator denial overrides all dashboard external controls")
+            completed.extend(run_feature_scenarios(browser, server))
         finally:
             browser.close()
     print(json.dumps({"browserScenariosPassed": len(completed), "scenarios": completed}, indent=2))

@@ -1,7 +1,8 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "02.01.00";
+  const APP_VERSION = "02.01.01";
+  const enhancements = globalThis.KellmarksEnhancements;
   const AUTH_KEY = "kellmarks_api_token_v1";
   const LOCAL_KEY = "kellmarks_local_fallback_v2";
   const MAX_IMPORT_BYTES = 1_048_576;
@@ -55,6 +56,7 @@
 
   const state = {
     entries: [],
+    siteRules: {},
     activePath: "__ALL__",
     activeQuery: "",
     editingId: null,
@@ -542,11 +544,14 @@
       icon.appendChild(fallback);
     }
 
-    if (entry.iconUrl && state.remoteIcons && state.externalRequestsAllowed && state.apiReady) {
+    const iconURL = entry.iconUrl || enhancements.faviconURL(entry.url);
+    if (iconURL && state.remoteIcons && state.externalRequestsAllowed && state.apiReady) {
       const image = document.createElement("img");
       image.alt = "";
       image.referrerPolicy = "no-referrer";
-      image.src = entry.iconUrl;
+      image.loading = "lazy";
+      image.decoding = "async";
+      image.src = iconURL;
       image.addEventListener("error", addFallbackIcon, { once: true });
       icon.appendChild(image);
     } else {
@@ -684,6 +689,9 @@
       tags
     };
     const editingId = state.editingId;
+    if (!editingId && !state.apiReady && !payload.tags.length) {
+      payload.tags = enhancements.suggestTags(url, state.entries, state.siteRules);
+    }
     try {
       if (state.apiReady) {
         await apiFetch(editingId ? API.entry(editingId) : API.entries, {
@@ -1050,9 +1058,16 @@
   }
 
   async function boot() {
+    enhancements.setupThemes();
+    state.siteRules = await enhancements.loadSiteRules();
     await initializeData();
     renderTree();
     renderCards();
+    enhancements.setupVersionCheck({
+      apiReady: state.apiReady,
+      externalRequestsAllowed: state.externalRequestsAllowed,
+      apiFetch, version: APP_VERSION
+    });
   }
 
   boot().catch(() => {

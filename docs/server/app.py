@@ -31,9 +31,11 @@ from importing import (
     library_revision,
     parse_bookmark_html,
 )
+from site_defaults import suggest_tags
+from updates import ReleaseChecker
 from werkzeug.exceptions import BadRequest, RequestEntityTooLarge, UnsupportedMediaType
 
-APP_VERSION = "02.01.00"
+APP_VERSION = "02.01.01"
 DATA_SCHEMA_VERSION = 2
 DEFAULT_PORT = 8787
 DEFAULT_MAX_REQUEST_BYTES = 1_048_576
@@ -50,7 +52,7 @@ MAX_QUERY_LENGTH = 512
 MAX_EXTERNAL_QUERY_LENGTH = 256
 MAX_PATH_LENGTH = 256
 DDG_MAX_RESPONSE_BYTES = 2_097_152
-STATIC_ASSETS = frozenset({"app.css", "app.js", "logo.svg", "sample-data.json"})
+STATIC_ASSETS = frozenset({"app.css", "app.js", "logo.svg", "sample-data.json", "enhancements.js", "site-tags.json"})
 CONTROL_CHAR_RE = re.compile(r"[\x00-\x1f\x7f]")
 ENTRY_ID_RE = re.compile(r"^[A-Za-z0-9._:-]{1,80}$")
 REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._:-]{1,64}$")
@@ -993,6 +995,8 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
 
     limiter = SlidingWindowLimiter()
     app.extensions["kellmarks_limiter"] = limiter
+    release_checker = ReleaseChecker(APP_VERSION)
+    app.extensions["kellmarks_release_checker"] = release_checker
 
     app.logger.handlers.clear()
     handler = logging.StreamHandler()
@@ -1242,6 +1246,10 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             }
         )
 
+    @app.get("/api/version")
+    def version_status() -> Response:
+        return jsonify(release_checker.check(allowed=bool(app.config["EXTERNAL_REQUESTS_ALLOWED"])))
+
     @app.get("/api/entries")
     def list_entries() -> Response:
         return jsonify(store.read()["entries"])
@@ -1264,6 +1272,8 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
                 "updatedAt": now,
                 **cleaned,
             }
+            if not entry["tags"]:
+                entry["tags"] = suggest_tags(entry["url"], entries)
             entries.insert(0, entry)
             return entry
 
