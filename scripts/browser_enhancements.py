@@ -61,8 +61,9 @@ def run_feature_scenarios(browser: Any, server: Any) -> list[str]:
         assert external == []
         page.locator("#remoteIcons").check()
         expect(card(page, "GitHub saved").locator(".icon img")).to_have_attribute("src", "https://github.com/favicon.ico")
-        page.wait_for_timeout(150)
-        assert external == ["https://github.com/favicon.ico"]
+        card(page, "GitHub saved").locator(".icon").scroll_into_view_if_needed()
+        page.wait_for_function("document.querySelector('.icon img')?.naturalWidth > 0")
+        assert external == ["https://github.com/favicon.ico"], external
         add(page, "Custom icon", "https://custom.test/page", "Personal", "https://custom.test/chosen.png")
         expect(card(page, "Custom icon").locator(".icon img")).to_have_attribute("src", "https://custom.test/chosen.png")
         assert "https://custom.test/favicon.ico" not in external

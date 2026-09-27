@@ -126,8 +126,11 @@ def main() -> None:
                 page.locator("#q").fill("")
                 expect(page.locator("#cards h3")).to_have_count(2)
                 page.locator("#remoteIcons").check()
-                page.wait_for_timeout(150)
-                assert set(external) == {"https://icons.test/a.png", "https://z.test/favicon.ico"}
+                # Icons are lazy-loaded; request completion is not a 150 ms guarantee.
+                for icon in page.locator(".icon").all():
+                    icon.scroll_into_view_if_needed()
+                expect(page.locator(".icon .fallback")).to_have_count(2)
+                assert set(external) == {"https://icons.test/a.png", "https://z.test/favicon.ico"}, external
                 page.reload()
                 expect(page.locator("#remoteIcons")).not_to_be_checked()
                 expect(page.locator("#cards h3")).to_have_count(2)
