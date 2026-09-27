@@ -1,0 +1,105 @@
+{
+  "github.com": [
+    "development/git",
+    "software/open-source"
+  ],
+  "gitlab.com": [
+    "development/git",
+    "software/open-source"
+  ],
+  "bitbucket.org": [
+    "development/git"
+  ],
+  "stackoverflow.com": [
+    "development/q-and-a"
+  ],
+  "stackexchange.com": [
+    "reference/q-and-a"
+  ],
+  "python.org": [
+    "development/python"
+  ],
+  "pypi.org": [
+    "development/python",
+    "development/packages"
+  ],
+  "npmjs.com": [
+    "development/javascript",
+    "development/packages"
+  ],
+  "developer.mozilla.org": [
+    "development/web",
+    "reference/documentation"
+  ],
+  "developer.chrome.com": [
+    "development/web",
+    "reference/documentation"
+  ],
+  "learn.microsoft.com": [
+    "reference/documentation",
+    "technology/microsoft"
+  ],
+  "aws.amazon.com": [
+    "cloud/aws"
+  ],
+  "cloud.google.com": [
+    "cloud/google"
+  ],
+  "azure.microsoft.com": [
+    "cloud/azure"
+  ],
+  "docker.com": [
+    "development/containers"
+  ],
+  "kubernetes.io": [
+    "development/containers"
+  ],
+  "wikipedia.org": [
+    "reference/encyclopedia"
+  ],
+  "arxiv.org": [
+    "research/papers"
+  ],
+  "scholar.google.com": [
+    "research/papers"
+  ],
+  "pubmed.ncbi.nlm.nih.gov": [
+    "research/papers"
+  ],
+  "youtube.com": [
+    "media/video"
+  ],
+  "youtu.be": [
+    "media/video"
+  ],
+  "vimeo.com": [
+    "media/video"
+  ],
+  "reddit.com": [
+    "community/discussions"
+  ],
+  "news.ycombinator.com": [
+    "technology/news"
+  ],
+  "medium.com": [
+    "reading/articles"
+  ],
+  "substack.com": [
+    "reading/newsletters"
+  ],
+  "coursera.org": [
+    "learning/courses"
+  ],
+  "edx.org": [
+    "learning/courses"
+  ],
+  "khanacademy.org": [
+    "learning/courses"
+  ],
+  "figma.com": [
+    "design/tools"
+  ],
+  "canva.com": [
+    "design/tools"
+  ]
+}

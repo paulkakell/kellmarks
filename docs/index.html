@@ -18,7 +18,7 @@
           <div>
             <div class="brand-title">
               <h1>Kellmarks</h1>
-              <span class="version-badge" aria-label="Kellmarks version 02.01.00">v02.01.00</span>
+              <span class="version-badge" aria-label="Kellmarks version 02.01.01">v02.01.01</span>
             </div>
             <div class="sub">Local first, protected, searchable</div>
           </div>
@@ -29,6 +29,7 @@
           <div class="kbd" title="Shortcut">Ctrl K</div>
         </div>
 
+        <button class="btn secondary" id="themeBtn" type="button">Theme</button>
         <button class="btn" id="addBtn" type="button">Add</button>
       </div>
     </header>
@@ -92,6 +93,13 @@
         </section>
       </div>
     </main>
+    <footer class="app-footer" aria-label="Application version and updates">
+      <span id="versionCurrent">Kellmarks v02.01.01</span>
+      <span id="versionStatus" role="status" aria-live="polite">Update check not run</span>
+      <button class="btn secondary" id="checkVersion" type="button" disabled>Check again</button>
+      <a id="releaseLink" href="https://github.com/paulkakell/kellmarks/releases/latest" target="_blank" rel="noopener noreferrer">Latest release</a>
+      <small id="versionChecked"></small>
+    </footer>
   </div>
 
   <dialog id="editor">
@@ -117,12 +125,12 @@
           <div class="field">
             <label for="icon">Icon URL</label>
             <input id="icon" maxlength="2048" inputmode="url" placeholder="https://site/icon.png">
-            <div class="help">Optional. HTTP or HTTPS only.</div>
+            <div class="help">Leave blank to use the site’s favicon. Remote icons require session consent; unavailable icons show initials.</div>
           </div>
           <div class="field">
             <label for="tags">Tags</label>
             <input id="tags" maxlength="2592" placeholder="work/security/tools, aws/iam, personal">
-            <div class="help">Up to 32 comma-separated tags. Use slashes for hierarchy.</div>
+            <div class="help">Up to 32 comma-separated tags. Blank tags on a new entry use local site suggestions. Editing never regenerates tags; clearing them keeps the entry untagged.</div>
           </div>
         </div>
 
@@ -135,6 +143,55 @@
       <div class="modal-foot">
         <button class="btn secondary" id="cancelBtn" type="button">Cancel</button>
         <button class="btn" id="saveBtn" type="submit">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="themeDialog" aria-labelledby="themeTitle">
+    <div class="modal-head">
+      <h2 class="mh" id="themeTitle">Color theme</h2>
+      <button class="close" id="closeTheme" type="button">Close</button>
+    </div>
+    <form id="themeForm">
+      <div class="modal-body">
+        <div class="field">
+          <label for="themePreset">Theme preset</label>
+          <select id="themePreset"></select>
+          <p class="help">Preview 20 presets or choose custom colors. Apply saves only to this browser; Cancel restores your saved theme.</p>
+        </div>
+        <div class="theme-colors">
+          <div class="field color-field">
+            <label for="themeBackground">Page background</label>
+            <input id="themeBackground" type="color" value="#000000" aria-describedby="themeBackgroundHex">
+            <output id="themeBackgroundHex" for="themeBackground">#000000</output>
+          </div>
+          <div class="field color-field">
+            <label for="themeText">Page text</label>
+            <input id="themeText" type="color" value="#FFFFFF" aria-describedby="themeTextHex">
+            <output id="themeTextHex" for="themeText">#FFFFFF</output>
+          </div>
+          <div class="field color-field">
+            <label for="themeAccent">Accent</label>
+            <input id="themeAccent" type="color" value="#FFD700" aria-describedby="themeAccentHex">
+            <output id="themeAccentHex" for="themeAccent">#FFD700</output>
+          </div>
+          <div class="field color-field">
+            <label for="themeCard">Card background</label>
+            <input id="themeCard" type="color" value="#FFD700" aria-describedby="themeCardHex">
+            <output id="themeCardHex" for="themeCard">#FFD700</output>
+          </div>
+          <div class="field color-field">
+            <label for="themeCardText">Card text</label>
+            <input id="themeCardText" type="color" value="#000000" aria-describedby="themeCardTextHex">
+            <output id="themeCardTextHex" for="themeCardText">#000000</output>
+          </div>
+        </div>
+        <p class="help" id="themeContrast" role="status" aria-live="polite"></p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn secondary" id="resetTheme" type="button">Gold / black</button>
+        <button class="btn secondary" id="cancelTheme" type="button">Cancel</button>
+        <button class="btn" id="applyTheme" type="submit">Apply theme</button>
       </div>
     </form>
   </dialog>
@@ -183,6 +240,7 @@
   <input type="file" id="filePick" accept="application/json,text/html,.json,.html,.htm" style="display:none;">
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <script src="assets/enhancements.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>

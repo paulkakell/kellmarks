@@ -1,4 +1,4 @@
-# KellMarks user guide 02.01.00
+# KellMarks user guide 02.01.01
 
 This guide describes implemented behavior. The [roadmap](ROADMAP.md) describes later work and should not be read as a current feature list.
 
@@ -72,3 +72,20 @@ Before an import, save an independent export. After a successful import, the pre
 Schema 2 is unchanged, so a 02.01.00 export is compatible with the prior 02.00.03 importer. Keep the previous code artifact and a private data copy before downgrading. Detailed operator steps are in [release notes](releases/02.01.00.md).
 
 There is no Trash, per-bookmark undo/history, backup browser, bulk tag editor, capture extension, read-later status, saved collection, offline sync or AI feature in this release. Those accepted features have explicit delivery milestones in the roadmap.
+
+
+## Entry defaults and appearance (02.01.01)
+
+Leave **Icon URL** blank to try the site's HTTPS `/favicon.ico`. This is a display fallback: an automatically chosen favicon is not written into the entry, so changing a bookmark URL uses the new site's icon. An explicit icon URL takes priority. Check **Allow remote icons for this session** to permit these website requests; an unavailable icon shows initials. No third-party icon service is used. The operator's external-request deny switch still wins.
+
+Leave **Tags** blank when adding an entry to use up to five local suggestions. Kellmarks first reuses common tags for that same hostname, then uses bundled site rules, then falls back to `sites/<hostname>`. These are deterministic local suggestions, not fetched site keywords or AI output. Manual tags are retained. Editing a bookmark never regenerates tags: clearing them keeps it untagged, including after a URL change or reload. Imported and existing records are not backfilled.
+
+Select **Theme** in the header for 20 presets or five custom colors: page background/text, accent, and card background/text. Preview is immediate. **Apply theme** saves to this browser, **Cancel** or Escape restores the previous selection, and **Gold / black** previews the original default. Low-contrast custom combinations produce a warning rather than silently overriding your choices. Theme settings do not change the shared bookmark file or other browsers. When browser storage is blocked, a theme can still be applied for the current page.
+
+## Installed version and updates (02.01.01)
+
+The bottom of the page displays the installed version, release status, a **Check again** button and the latest-release link. With the API available, the server automatically checks public GitHub release metadata. It sends no bookmark content or API credentials. The status distinguishes **Up to date**, **Update available**, a development build ahead of the release, no published stable release, unavailable and operator-disabled.
+
+Results are cached per server process for one hour, or five minutes after an unsuccessful check. **Check again** refreshes the displayed cached result and retries upstream once the cache expires; the timestamp identifies the actual network attempt. A network error never means the software is current. The check does not download or install updates.
+
+`KELLMARKS_EXTERNAL_REQUESTS=0` disables the lookup. Static demonstration mode shows a manual release link and explains that automatic checking requires the server. Creation-time tag suggestions and themes still work locally when external requests are disabled or the API is unavailable.

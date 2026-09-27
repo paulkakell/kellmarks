@@ -157,3 +157,8 @@ Every implementation release must complete these gates, with actual output rathe
 ## References
 
 Security design references, consulted 2026-09-27: [OWASP SSRF prevention](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html) and [Chrome user-triggered activeTab permission](https://developer.chrome.com/docs/extensions/develop/concepts/activeTab). These inform later implementation; they do not establish that an unimplemented control already exists.
+
+
+## Dashboard follow-up — 02.01.01
+
+The September 27, 2026 follow-up implements four separately requested dashboard changes: consent-controlled site favicon fallback, local creation-only site tags, 20 theme presets/custom colors with gold/black as default, and cached release status in the footer. These changes do not imply completion of local AI (KM-R11), bulk editing, capture or any other remaining milestone above. The tag suggestions are deterministic local rules and reuse, not an AI implementation. See `releases/02.01.01.md` for behavior, privacy limits and rollback.

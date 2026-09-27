@@ -23,6 +23,7 @@ dependencies:
 build:
 	python -m compileall -q docs/server tests scripts
 	node --check docs/assets/app.js
+	node --check docs/assets/enhancements.js
 	python scripts/validate_release.py
 
 performance:

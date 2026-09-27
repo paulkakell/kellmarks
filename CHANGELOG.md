@@ -2,6 +2,16 @@
 
 All notable changes are recorded here. Kellmarks versions use `Release.Feature.BugFix` in fixed-width `xx.xx.xx` form.
 
+## [02.01.01] - 2026-09-27
+
+### Dashboard enhancements
+
+- Use the site's HTTPS `/favicon.ico` when an entry has no explicit icon, with existing session consent, operator denial and initials fallback preserved.
+- Populate blank tags only on new entry creation, using existing same-site tags, bundled domain suggestions or a hostname fallback. Explicit tags, edits, cleared tags, imports and existing records are not retagged.
+- Add 20 browser-local color presets, validated custom colors, live preview, cancel/reset, persistence and contrast warnings. Gold/black remains the default.
+- Add authenticated `GET /api/version` and footer status, with fixed GitHub release lookup, numeric version comparison, bounded network access, per-process caching and honest offline/static/disabled states.
+- Add backend, JavaScript and real-browser regressions; align release metadata and document new behavior. Preserve data schema 2, existing runtime dependencies and the remaining roadmap milestones.
+
 ## [02.01.00] - 2026-09-27
 
 ### Added

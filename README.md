@@ -1,6 +1,6 @@
 # Kellmarks
 
-[![Version 02.01.00](https://img.shields.io/badge/version-02.01.00-FFD700?style=flat-square&labelColor=000000)](docs/releases/02.01.00.md)
+[![Version 02.01.01](https://img.shields.io/badge/version-02.01.01-FFD700?style=flat-square&labelColor=000000)](docs/releases/02.01.01.md)
 [![Latest release](https://img.shields.io/github/v/release/paulkakell/kellmarks?display_name=tag&sort=semver&style=flat-square&label=release)](https://github.com/paulkakell/kellmarks/releases/latest)
 [![Python 3.10 and 3.13](https://img.shields.io/badge/python-3.10%20%7C%203.13-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![Data schema 2](https://img.shields.io/badge/data%20schema-2-FFD700?style=flat-square&labelColor=000000)](docs/API.md)
@@ -9,7 +9,7 @@
 
 Kellmarks is a local-first bookmark dashboard with hierarchical tags, Boolean search, import and export, and a small Flask API backed by one private JSON file.
 
-Version: **02.01.00**
+Version: **02.01.01**
 
 ## Security model
 
@@ -30,7 +30,11 @@ See [SECURITY.md](SECURITY.md) and [docs/SECURITY_ARCHITECTURE.md](docs/SECURITY
 
 ## Features
 
-- Dark single-page bookmark dashboard
+- Gold/black by default, with 20 theme presets and custom browser-local colors
+- Site favicon fallback with session-only remote-image consent
+- Offline site-tag suggestions for new entries with blank tags; no automatic retagging on edit
+- Footer release check with cached, privacy-preserving server lookup and explicit offline/disabled status
+- Single-page bookmark dashboard
 - Hierarchical tags using slash notation, such as `cloud/aws/iam`
 - Boolean search with `AND`, `OR`, `NOT`, parentheses, and quoted phrases
 - HTTP and HTTPS bookmark validation
@@ -55,7 +59,7 @@ See the [user guide](docs/USER_GUIDE.md) for merge versus replacement, duplicate
 ## Requirements
 
 - Python 3.10 or newer
-- Node.js only for the JavaScript syntax check in CI
+- Node.js for JavaScript syntax and helper regression checks
 
 Runtime dependencies are fully pinned in `docs/server/requirements.lock`. Development and security tools are pinned in `requirements-dev.txt`.
 
@@ -114,7 +118,7 @@ export KELLMARKS_EXTERNAL_REQUESTS=0
 python docs/server/app.py
 ```
 
-This denies the DuckDuckGo API before making an outbound request and disallows remote icon sources through the response security policy. The dashboard also disables those controls. Explicitly opening a saved website is still normal user-directed browser navigation. With the default value `1`, library searches remain local; the user must select **Search the web**, or opt into remote icons for the current page session. Server operators and direct API clients remain trusted.
+This denies DuckDuckGo and automatic GitHub release checks before making an outbound request and disallows remote icon sources through the response security policy. The dashboard also disables those controls. Explicitly opening a saved website is still normal user-directed browser navigation. With the default value `1`, library searches remain local; the user must select **Search the web**, or opt into remote icons for the current page session. The footer independently checks only public Kellmarks release metadata through the server; no bookmark URLs or tokens are sent. Server operators and direct API clients remain trusted.
 
 ## Development checks
 
@@ -133,7 +137,7 @@ python -m playwright install chromium
 make browser
 ```
 
-`make browser` launches isolated local stores, exercises the actual dashboard and mocks external search responses. It covers import cancellation, merge/replacement, stale previews, HTML safety, sorting, icon consent, operator denial and mobile layout. Set `KELLMARKS_BROWSER_EXECUTABLE` only to use an already installed Chromium for testing. GitHub's quality gate installs browser dependencies and runs these scenarios in a clean environment.
+`make browser` launches isolated local stores, exercises the actual dashboard and mocks external search responses. It covers import cancellation, merge/replacement, stale previews, HTML safety, sorting, icon consent, favicon fallback, creation-only tags, all theme presets/custom persistence, version states, static mode, operator denial and mobile layout. Set `KELLMARKS_BROWSER_EXECUTABLE` only to use an already installed Chromium for testing. GitHub's quality gate installs browser dependencies and runs these scenarios in a clean environment.
 
 GitHub Actions repeats the suite on Python 3.10 and 3.13 and runs CodeQL for Python and JavaScript.
 
