@@ -41,9 +41,9 @@ test("existing tags take precedence with deterministic frequency, deduplication 
   assert.deepEqual(plain(f.suggestTags("https://github.com/third", entries, rules)), ["Team", "a", "b", "c", "d"]);
 });
 
-test("there are exactly 20 unique readable presets and gold/black remains default", () => {
-  assert.equal(f.THEMES.length, 20);
-  assert.equal(new Set(f.THEMES.map((theme) => theme.id)).size, 20);
+test("there are 22 unique readable presets and gold/black remains default", () => {
+  assert.equal(f.THEMES.length, 22);
+  assert.equal(new Set(f.THEMES.map((theme) => theme.id)).size, 22);
   assert.equal(f.THEMES[0].id, "gold-black");
   assert.deepEqual(plain(f.THEMES[0].colors), { bg: "#000000", fg: "#FFFFFF", accent: "#FFD700", card: "#FFD700", cardText: "#000000" });
   for (const theme of f.THEMES) {
@@ -72,4 +72,23 @@ test("missing or invalid rule assets degrade to a local hostname fallback", asyn
   assert.deepEqual(plain(await f.loadSiteRules()), {});
   context.fetch = async () => ({ok:true,json:async () => ({"good.test":["work"],"bad.test":["x".repeat(81)]})});
   assert.deepEqual(plain(await f.loadSiteRules()), {"good.test":["work"]});
+});
+
+
+test("retro monitor presets are additive, monochrome and safely restored", () => {
+  assert.deepEqual(plain(f.THEMES.slice(0, 20).map(theme => theme.id)), [
+    "gold-black", "ocean", "forest", "violet", "ruby", "amber", "teal", "cobalt", "rose", "lime",
+    "copper", "slate", "midnight", "arctic", "paper", "sand", "lavender", "mint", "peach", "mono"
+  ]);
+  for (const [id, phosphor] of [["mono-green", "#33FF66"], ["mono-amber", "#FFB000"]]) {
+    const theme = f.THEMES.find(item => item.id === id);
+    assert.ok(theme, id);
+    assert.equal(theme.colors.bg, "#000000");
+    for (const key of ["fg", "accent", "cardText"]) assert.equal(theme.colors[key], phosphor);
+    assert.ok(f.contrast(theme.colors.bg, phosphor) >= 7, id);
+    assert.ok(f.contrast(theme.colors.card, phosphor) >= 7, id);
+    const saved = {version: 1, preset: id, colors: {bg: "invalid"}};
+    assert.deepEqual(plain(f.normalizeTheme(saved).colors), plain(theme.colors));
+    assert.equal(f.normalizeTheme(saved).preset, id);
+  }
 });

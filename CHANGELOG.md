@@ -2,6 +2,18 @@
 
 All notable changes are recorded here. Kellmarks versions use `Release.Feature.BugFix` in fixed-width `xx.xx.xx` form.
 
+## [02.01.02] - 2026-09-27
+
+### Added
+
+- Green and amber 1980s-style monochrome monitor presets: phosphor text, dark cards, monospace typography, matching image tint and a subtle static glow without flicker or animation. All 20 existing presets are retained, bringing the total to 22; custom colors and the gold/black default are unchanged.
+- Full-card native links: icons, URLs, descriptions, padding and gaps open the existing bookmark target in a new tab. Edit, Delete and tag buttons keep their independent actions. Keyboard focus, Enter, modifier-click, middle-click and link context menus retain native link behavior.
+- Regression coverage for both monitor palettes, saved preferences, styling reset, card hit targets, button isolation, keyboard activation, popup safety and mobile touch navigation.
+
+### Compatibility
+
+Frontend enhancements only, plus synchronized release metadata and documentation. No API, authentication, configuration-default, runtime dependency or schema-2 data changes. No migration or bookmark rewrite is required. Rollback and validation commands are documented in `docs/releases/02.01.02.md`.
+
 ## [02.01.01] - 2026-09-27
 
 ### Dashboard enhancements

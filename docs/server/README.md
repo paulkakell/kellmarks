@@ -1,6 +1,6 @@
-# Kellmarks server 02.01.01
+# Kellmarks server 02.01.02
 
-[![Version 02.01.01](https://img.shields.io/badge/version-02.01.01-FFD700?style=flat-square&labelColor=000000)](../releases/02.01.01.md)
+[![Version 02.01.02](https://img.shields.io/badge/version-02.01.02-FFD700?style=flat-square&labelColor=000000)](../releases/02.01.02.md)
 [![Python 3.10 and 3.13](https://img.shields.io/badge/python-3.10%20%7C%203.13-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![Data schema 2](https://img.shields.io/badge/data%20schema-2-FFD700?style=flat-square&labelColor=000000)](../API.md)
 
@@ -119,7 +119,7 @@ curl --fail \
 
 One JSON object is emitted per API request with timestamp, level, event, request ID, method, path, status, duration, and remote address. Query strings and authorization values are not logged by the application. Configure the reverse proxy with the same privacy standard.
 
-## 02.01.01 reviewed imports and privacy
+## 02.01.02 reviewed imports and privacy
 
 See [the user guide](../USER_GUIDE.md) and [accepted roadmap](../ROADMAP.md). The new `POST /api/import/preview` route validates a candidate without changing the store. Apply with an explicit `mode` and the returned `baseRevision`; `409` means the library changed and must be previewed again. The legacy no-mode import contract still means replacement. Schema 2 is unchanged.
 
@@ -130,6 +130,6 @@ Run `make browser` after installing `requirements-browser.txt` and Chromium. Bro
 
 ## Dashboard defaults and release status
 
-Version 02.01.01 fills empty tags only in the new-entry POST handler, using local site rules and existing same-host tags. Updates, imports and store reads do not generate tags. The frontend serves 20 browser-local theme presets plus custom colors and tries a site's HTTPS favicon only after remote-icon consent.
+Version 02.01.02 fills empty tags only in the new-entry POST handler, using local site rules and existing same-host tags. Updates, imports and store reads do not generate tags. The frontend serves 22 browser-local theme presets, including green and amber monochrome monitors, plus custom colors and tries a site's HTTPS favicon only after remote-icon consent.
 
-`GET /api/version` uses normal API authentication and a fixed public GitHub latest-release URL. No incoming token or bookmark data is forwarded; redirects are rejected, the response is bounded, and results are cached per process (one hour successful, five minutes unsuccessful). `KELLMARKS_EXTERNAL_REQUESTS=0` prevents that request and yields an explicit disabled status. Health checks do not contact GitHub. See [API details](../API.md) and [release notes](../releases/02.01.01.md).
+`GET /api/version` uses normal API authentication and a fixed public GitHub latest-release URL. No incoming token or bookmark data is forwarded; redirects are rejected, the response is bounded, and results are cached per process (one hour successful, five minutes unsuccessful). `KELLMARKS_EXTERNAL_REQUESTS=0` prevents that request and yields an explicit disabled status. Health checks do not contact GitHub. See [API details](../API.md) and [release notes](../releases/02.01.02.md).

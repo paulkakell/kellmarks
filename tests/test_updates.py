@@ -5,6 +5,7 @@ import json
 import urllib.error
 from unittest.mock import Mock
 
+import app as kellmarks
 import pytest
 import updates
 from updates import MAX_RELEASE_BYTES, RELEASE_API, NoRedirects, ReleaseChecker, version_parts
@@ -112,7 +113,7 @@ def test_endpoint_authentication_and_no_forwarded_secrets(make_app, monkeypatch)
     token = "a" * 40
     app = make_app(AUTH_TOKEN=token)
     checker = app.extensions["kellmarks_release_checker"]
-    opened = mock_reply(monkeypatch, checker, release())
+    opened = mock_reply(monkeypatch, checker, release(kellmarks.APP_VERSION))
     client = app.test_client()
     assert client.get("/api/version").status_code == 401
     assert opened.call_count == 0

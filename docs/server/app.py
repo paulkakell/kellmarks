@@ -35,7 +35,7 @@ from site_defaults import suggest_tags
 from updates import ReleaseChecker
 from werkzeug.exceptions import BadRequest, RequestEntityTooLarge, UnsupportedMediaType
 
-APP_VERSION = "02.01.01"
+APP_VERSION = "02.01.02"
 DATA_SCHEMA_VERSION = 2
 DEFAULT_PORT = 8787
 DEFAULT_MAX_REQUEST_BYTES = 1_048_576

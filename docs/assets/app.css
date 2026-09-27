@@ -132,3 +132,30 @@ dialog{max-height:calc(100dvh - 32px);overflow:auto;}
 .color-field output{font-family:var(--mono);font-size:12px;color:var(--muted);}
 #themeContrast[data-warning=true]{border-left:3px solid var(--accent);padding-left:10px;font-weight:700;}
 #themeTitle{margin:0;font-size:18px;}
+
+/* The existing title link covers the whole card, except its actual buttons.
+   Keep wrappers below the link so padding and gaps remain clickable too. */
+.card{position:relative;isolation:isolate;}
+.card h3{overflow-wrap:anywhere;}
+.card h3 a::after{content:"";position:absolute;inset:0;z-index:1;border-radius:var(--radius);}
+.card h3 a:hover::after{box-shadow:inset 0 0 0 2px rgba(var(--card-fg-rgb),.32);}
+.card h3 a:focus-visible{outline:none;}
+.card h3 a:focus-visible::after{outline:3px solid var(--card-fg);outline-offset:2px;}
+.card button{position:relative;z-index:2;}
+.card button:focus-visible{outline:2px solid var(--card-fg);outline-offset:2px;}
+
+/* Static phosphor-monitor styling: scoped to these presets, with no flicker,
+   animation, scanline overlay, or font/image downloads. */
+:root:is([data-theme="mono-green"],[data-theme="mono-amber"]){
+  --sans:var(--mono);
+  --radius:4px;
+  --radius2:4px;
+  --shadow:0 0 18px rgba(var(--accent-rgb),.12);
+  --monitor-filter:grayscale(1) sepia(1) saturate(5) hue-rotate(75deg);
+  accent-color:var(--accent);
+}
+:root[data-theme="mono-amber"]{--monitor-filter:grayscale(1) sepia(1) saturate(5);}
+:root:is([data-theme="mono-green"],[data-theme="mono-amber"]) body{text-shadow:0 0 5px rgba(var(--accent-rgb),.28);}
+:root:is([data-theme="mono-green"],[data-theme="mono-amber"]) :is(button,input,textarea,select){font-family:var(--mono);}
+:root:is([data-theme="mono-green"],[data-theme="mono-amber"]) .card{border:1px solid rgba(var(--accent-rgb),.55);box-shadow:0 0 12px rgba(var(--accent-rgb),.12);}
+:root:is([data-theme="mono-green"],[data-theme="mono-amber"]) :is(.brand img,.icon img){filter:var(--monitor-filter);}

@@ -1,4 +1,4 @@
-# KellMarks user guide 02.01.01
+# KellMarks user guide 02.01.02
 
 This guide describes implemented behavior. The [roadmap](ROADMAP.md) describes later work and should not be read as a current feature list.
 
@@ -80,7 +80,13 @@ Leave **Icon URL** blank to try the site's HTTPS `/favicon.ico`. This is a displ
 
 Leave **Tags** blank when adding an entry to use up to five local suggestions. Kellmarks first reuses common tags for that same hostname, then uses bundled site rules, then falls back to `sites/<hostname>`. These are deterministic local suggestions, not fetched site keywords or AI output. Manual tags are retained. Editing a bookmark never regenerates tags: clearing them keeps it untagged, including after a URL change or reload. Imported and existing records are not backfilled.
 
-Select **Theme** in the header for 20 presets or five custom colors: page background/text, accent, and card background/text. Preview is immediate. **Apply theme** saves to this browser, **Cancel** or Escape restores the previous selection, and **Gold / black** previews the original default. Low-contrast custom combinations produce a warning rather than silently overriding your choices. Theme settings do not change the shared bookmark file or other browsers. When browser storage is blocked, a theme can still be applied for the current page.
+Select **Theme** in the header for 22 presets or five custom colors: page background/text, accent, and card background/text. Preview is immediate. **Apply theme** saves to this browser, **Cancel** or Escape restores the previous selection, and **Gold / black** previews the original default. Low-contrast custom combinations produce a warning rather than silently overriding your choices. Theme settings do not change the shared bookmark file or other browsers. When browser storage is blocked, a theme can still be applied for the current page.
+
+### Monochrome monitors and card navigation (02.01.02)
+
+Choose **Monochrome green (1980s)** or **Monochrome amber (1980s)** for phosphor-colored text on black, dark cards with matching borders, a monospace typeface and a subtle static glow. Logos and allowed remote icons are tinted to match. These presets add no animation, flicker, fonts or network requests. All 20 existing presets, custom colors and saved preferences remain available; gold/black is still the default. Switching to another preset or custom colors removes the monitor-specific styling.
+
+Click the title, icon, URL, description, card padding or the gaps between controls to open the bookmark in a new tab, matching the existing title-link behavior. **Edit**, **Delete** and tag buttons do not open the bookmark; they keep their editor, confirmation and filtering actions. The card uses a native link with one keyboard tab stop: press **Enter** to open it. Middle-click, modifier-click and the browser's link context menu also work. Keyboard focus outlines the entire card; buttons have their own focus outline.
 
 ## Installed version and updates (02.01.01)
 

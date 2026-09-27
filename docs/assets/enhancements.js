@@ -25,7 +25,9 @@
     ["lavender", "Lavender", "#F2EDFA", "#322349", "#70429A", "#FEFAFF", "#322349"],
     ["mint", "Mint", "#EAF6EF", "#1B3C2A", "#216B44", "#F7FFFA", "#1B3C2A"],
     ["peach", "Peach", "#FFF0E7", "#4A2B20", "#924424", "#FFF9F4", "#4A2B20"],
-    ["mono", "Monochrome", "#171717", "#F5F5F5", "#FFFFFF", "#E5E5E5", "#171717"]
+    ["mono", "Monochrome", "#171717", "#F5F5F5", "#FFFFFF", "#E5E5E5", "#171717"],
+    ["mono-green", "Monochrome green (1980s)", "#000000", "#33FF66", "#33FF66", "#001408", "#33FF66"],
+    ["mono-amber", "Monochrome amber (1980s)", "#000000", "#FFB000", "#FFB000", "#1A1000", "#FFB000"]
   ];
   const THEMES = palettes.map(([id, name, ...values]) => Object.freeze({
     id, name, colors: Object.freeze(Object.fromEntries(COLOR_KEYS.map((key, i) => [key, values[i]])))

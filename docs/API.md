@@ -1,4 +1,4 @@
-# Kellmarks API 02.01.01
+# Kellmarks API 02.01.02
 
 Default base URL: `http://127.0.0.1:8787`
 
@@ -58,7 +58,7 @@ Rules:
 ```json
 {
   "ok": true,
-  "version": "02.01.01",
+  "version": "02.01.02",
   "dataSchemaVersion": 2,
   "time": "2026-08-13T12:00:00Z"
 }
@@ -245,10 +245,10 @@ Uses the same authentication as other API routes. Returns HTTP 200 with status d
 
 ```json
 {
-  "currentVersion": "02.01.01",
-  "latestVersion": "02.01.01",
+  "currentVersion": "02.01.02",
+  "latestVersion": "02.01.02",
   "status": "current",
-  "releaseUrl": "https://github.com/paulkakell/kellmarks/releases/tag/02.01.01",
+  "releaseUrl": "https://github.com/paulkakell/kellmarks/releases/tag/v02.01.02",
   "checkedAt": "2026-09-27T19:00:00Z"
 }
 ```
