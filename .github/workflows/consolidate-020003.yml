@@ -1,0 +1,40 @@
+name: Consolidate 02.00.03
+
+on:
+  push:
+    branches: [release/02.00.03]
+    paths:
+      - .github/workflows/consolidate-020003.yml
+      - scripts/prepare_020003.py
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+
+concurrency:
+  group: consolidate-020003
+  cancel-in-progress: false
+
+jobs:
+  maintain:
+    name: Prepare or finalize audited 02.00.03 consolidation
+    if: github.repository == 'paulkakell/kellmarks' && github.ref == 'refs/heads/release/02.00.03'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Execute version-scoped maintenance with exact-head guards
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: |
+          gh auth setup-git
+          python scripts/prepare_020003.py
