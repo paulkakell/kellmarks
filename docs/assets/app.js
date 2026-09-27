@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "02.00.03";
+  const APP_VERSION = "02.01.00";
   const AUTH_KEY = "kellmarks_api_token_v1";
   const LOCAL_KEY = "kellmarks_local_fallback_v2";
   const MAX_IMPORT_BYTES = 1_048_576;
@@ -14,6 +14,7 @@
     entry: (id) => `/api/entries/${encodeURIComponent(id)}`,
     export: "/api/export",
     import: "/api/import",
+    importPreview: "/api/import/preview",
     ddg: (query) => `/api/external/ddg?q=${encodeURIComponent(query)}`,
     sample: "assets/sample-data.json"
   };
@@ -59,7 +60,14 @@
     editingId: null,
     ddgAbort: null,
     apiReady: false,
-    authenticationCancelled: false
+    authenticationCancelled: false,
+    externalRequestsAllowed: false,
+    remoteIcons: false,
+    sortOrder: "title",
+    importSource: null,
+    importReview: null,
+    importGeneration: 0,
+    importing: false
   };
 
   function nowISO() {
@@ -264,7 +272,8 @@
 
   async function initializeData() {
     try {
-      await apiFetch(API.health, { method: "GET" });
+      const health = await apiFetch(API.health, { method: "GET" });
+      state.externalRequestsAllowed = health.externalRequestsAllowed === true;
       state.entries = await apiFetch(API.entries, { method: "GET" });
       state.entries = state.entries.map(cleanEntry).filter(Boolean);
       state.apiReady = true;
@@ -272,6 +281,7 @@
       return;
     } catch (error) {
       state.apiReady = false;
+      state.externalRequestsAllowed = false;
       if (error instanceof HTTPError && [401, 403].includes(error.status)) {
         state.entries = [];
         showBanner("locked", "The API is protected. Reload and enter a valid session token to continue.");
@@ -287,7 +297,7 @@
         "noapi",
         "API unavailable. Changes are stored only in this browser.",
         "Server guide",
-        "https://github.com/paulkakell/kellmarks/blob/dev/docs/server/README.md"
+        "https://github.com/paulkakell/kellmarks/blob/main/docs/server/README.md"
       );
     }
   }
@@ -499,7 +509,16 @@
         tag === state.activePath || tag.startsWith(`${state.activePath}/`)
       )));
     }
-    return entries.toSorted((left, right) => left.title.localeCompare(right.title));
+    return entries.toSorted((left, right) => {
+      if (state.sortOrder !== "title") {
+        const leftTime = Date.parse(left[state.sortOrder]) || 0;
+        const rightTime = Date.parse(right[state.sortOrder]) || 0;
+        if (leftTime !== rightTime) {
+          return rightTime - leftTime;
+        }
+      }
+      return left.title.localeCompare(right.title) || left.id.localeCompare(right.id);
+    });
   }
 
   function initials(value) {
@@ -523,7 +542,7 @@
       icon.appendChild(fallback);
     }
 
-    if (entry.iconUrl) {
+    if (entry.iconUrl && state.remoteIcons && state.externalRequestsAllowed && state.apiReady) {
       const image = document.createElement("img");
       image.alt = "";
       image.referrerPolicy = "no-referrer";
@@ -607,12 +626,10 @@
     for (const entry of entries) {
       cardsElement.appendChild(createCard(entry));
     }
-    if (query && query.length <= 256 && state.apiReady) {
-      renderDDG(query);
-    } else {
-      ddgPanel.style.display = "none";
-      abortDDG();
-    }
+    // Rendering, filtering, sorting and editing never initiate an external lookup.
+    ddgPanel.style.display = "none";
+    abortDDG();
+    updatePrivacyControls();
   }
 
   function openEditor(id = null) {
@@ -720,6 +737,9 @@
 
   let searchTimer = null;
   queryElement.addEventListener("input", () => {
+    abortDDG();
+    ddgPanel.style.display = "none";
+    $("#webSearchBtn").disabled = true;
     window.clearTimeout(searchTimer);
     searchTimer = window.setTimeout(() => {
       state.activeQuery = queryElement.value.slice(0, 512);
@@ -759,47 +779,209 @@
     }
   });
 
-  $("#importBtn").addEventListener("click", () => filePicker.click());
+  const importDialog = $("#importDialog");
+  const importSummary = $("#importSummary");
+  const importDetails = $("#importDetails");
+  const applyImportButton = $("#applyImport");
+
+  function selectedImportOptions() {
+    return {
+      mode: $("#importMode").value,
+      titleSource: $("#importTitleSource").value,
+      descriptionSource: $("#importDescriptionSource").value
+    };
+  }
+
+  function invalidateImport() {
+    state.importGeneration += 1;
+    state.importReview = null;
+    applyImportButton.disabled = true;
+    importDetails.replaceChildren();
+    importSummary.textContent = "Preview before applying. No changes have been made.";
+  }
+
+  function setImportBusy(busy) {
+    state.importing = busy;
+    for (const selector of ["#importMode", "#importTitleSource", "#importDescriptionSource", "#previewImport", "#cancelImport", "#closeImport"]) {
+      $(selector).disabled = busy;
+    }
+    applyImportButton.disabled = busy || !state.importReview;
+  }
+
+  function closeImport() {
+    if (state.importing) {
+      return;
+    }
+    invalidateImport();
+    state.importSource = null;
+    importDialog.close();
+    $("#importBtn").focus();
+  }
+
+  importDialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeImport();
+  });
+  $("#closeImport").addEventListener("click", closeImport);
+  $("#cancelImport").addEventListener("click", closeImport);
+  for (const selector of ["#importMode", "#importTitleSource", "#importDescriptionSource"]) {
+    $(selector).addEventListener("change", invalidateImport);
+  }
+
+  async function previewImport() {
+    if (!state.importSource || state.importing) {
+      return;
+    }
+    invalidateImport();
+    const generation = state.importGeneration;
+    importSummary.textContent = "Validating the complete import. Your library is unchanged.";
+    try {
+      const review = await apiFetch(API.importPreview, {
+        method: "POST",
+        body: JSON.stringify({ ...state.importSource, ...selectedImportOptions() })
+      });
+      if (generation !== state.importGeneration || !importDialog.open) {
+        return;
+      }
+      if (!review.valid) {
+        importSummary.textContent = `${review.invalidCount} invalid entries. Correct the file before importing. Nothing was changed.`;
+        for (const issue of review.errors || []) {
+          const item = document.createElement("p");
+          item.textContent = `Entry ${issue.index + 1}: ${issue.error}`;
+          importDetails.appendChild(item);
+        }
+        return;
+      }
+      state.importReview = { ...review, options: selectedImportOptions() };
+      applyImportButton.disabled = false;
+      importSummary.textContent = review.mode === "replace"
+        ? `Replace all ${review.replacedCount} existing bookmarks with ${review.totalCount} imported bookmarks. A private backup will be created.`
+        : `${review.newCount} new, ${review.duplicateCount} matching URLs, ${review.updatedCount} existing bookmarks updated, ${review.unchangedCount} unchanged matches. Result: ${review.totalCount} bookmarks. Nothing has been changed yet.`;
+      for (const detail of (review.details || []).slice(0, 100)) {
+        const item = document.createElement("p");
+        item.textContent = `${detail.action}: ${detail.url}`;
+        importDetails.appendChild(item);
+      }
+      if ((review.details || []).length > 100) {
+        const note = document.createElement("p");
+        note.textContent = "Showing the first 100 items. Counts include the complete import.";
+        importDetails.appendChild(note);
+      }
+    } catch (error) {
+      if (generation === state.importGeneration) {
+        importSummary.textContent = error.message || "Preview failed. Nothing was changed.";
+      }
+    }
+  }
+
+  $("#previewImport").addEventListener("click", previewImport);
+  applyImportButton.addEventListener("click", async () => {
+    const review = state.importReview;
+    if (!review || state.importing) {
+      return;
+    }
+    if (review.mode === "replace" && !window.confirm(`Replace your entire library with ${review.totalCount} bookmarks?`)) {
+      return;
+    }
+    setImportBusy(true);
+    let committed = false;
+    try {
+      await apiFetch(API.import, {
+        method: "POST",
+        body: JSON.stringify({
+          ...review.options, format: "json", entries: review.incomingEntries,
+          baseRevision: review.baseRevision
+        })
+      });
+      committed = true;
+      state.entries = (await apiFetch(API.entries)).map(cleanEntry).filter(Boolean);
+      state.activePath = "__ALL__";
+      setImportBusy(false);
+      closeImport();
+      renderTree();
+      renderCards();
+      showToast("Import saved. A private pre-import backup is available on the server.");
+    } catch (error) {
+      invalidateImport();
+      importSummary.textContent = committed
+        ? "The import was saved, but the library could not reload. Reload the page; do not repeat the import."
+        : `${error.message || "Import could not be confirmed"}. Preview again before retrying.`;
+    } finally {
+      setImportBusy(false);
+    }
+  });
+
+  $("#importBtn").addEventListener("click", () => {
+    if (!state.apiReady) {
+      showToast("Reviewed import requires the local server. Browser-only data can still be exported.");
+      return;
+    }
+    filePicker.click();
+  });
   filePicker.addEventListener("change", async () => {
     const file = filePicker.files?.[0];
     if (!file) {
       return;
     }
     try {
+      if (!state.apiReady || state.importing) {
+        throw new Error("Import requires an available local server");
+      }
       if (file.size > MAX_IMPORT_BYTES) {
         throw new Error("Import file exceeds 1 MiB");
       }
-      const parsed = JSON.parse(await file.text());
-      const list = Array.isArray(parsed) ? parsed : parsed.entries;
-      if (!Array.isArray(list) || list.length > MAX_IMPORT_ENTRIES) {
-        throw new Error(`Import must contain no more than ${MAX_IMPORT_ENTRIES} entries`);
-      }
-      const cleaned = list.map(cleanEntry);
-      if (cleaned.some((entry) => entry === null) || !cleaned.length) {
-        throw new Error("Import contains invalid or unsafe URLs");
-      }
-      const ids = new Set(cleaned.map((entry) => entry.id));
-      if (ids.size !== cleaned.length) {
-        throw new Error("Import contains duplicate IDs");
-      }
-      if (!window.confirm(`Import ${cleaned.length} entries? This replaces the current list.`)) {
-        return;
-      }
-      if (state.apiReady) {
-        await apiFetch(API.import, { method: "POST", body: JSON.stringify({ entries: cleaned }) });
-        state.entries = (await apiFetch(API.entries)).map(cleanEntry).filter(Boolean);
+      const text = await file.text();
+      let source;
+      if (/\.html?$/i.test(file.name) || file.type === "text/html") {
+        source = { format: "html", html: text };
       } else {
-        state.entries = cleaned;
-        saveLocalEntries();
+        const parsed = JSON.parse(text);
+        const entries = Array.isArray(parsed) ? parsed : parsed?.entries;
+        if (!Array.isArray(entries) || entries.length > MAX_IMPORT_ENTRIES) {
+          throw new Error(`Import must contain no more than ${MAX_IMPORT_ENTRIES} entries`);
+        }
+        // Send original values to authoritative validation, without silent truncation.
+        source = { format: "json", entries };
       }
-      state.activePath = "__ALL__";
-      renderTree();
-      renderCards();
-      showToast("Imported");
+      invalidateImport();
+      state.importSource = source;
+      $("#importMode").value = "merge";
+      $("#importTitleSource").value = "existing";
+      $("#importDescriptionSource").value = "existing";
+      $("#importFileName").textContent = file.name;
+      importDialog.showModal();
+      $("#importMode").focus();
+      await previewImport();
     } catch (error) {
-      showToast(error.message || "Import failed");
+      showToast(error.message || "Could not read the import file");
     } finally {
       filePicker.value = "";
+    }
+  });
+
+  function updatePrivacyControls() {
+    const allowed = state.apiReady && state.externalRequestsAllowed;
+    const query = state.activeQuery.trim();
+    $("#webSearchBtn").disabled = !allowed || !query || query.length > 256;
+    $("#remoteIcons").disabled = !allowed;
+    $("#remoteIcons").checked = allowed && state.remoteIcons;
+    $("#privacyNotice").textContent = allowed
+      ? "Library search stays here. Search the web sends this query to DuckDuckGo. Remote icons are off unless selected for this session."
+      : "External requests are disabled or the server is unavailable. Library search does not contact a search provider.";
+  }
+
+  $("#sortOrder").addEventListener("change", () => {
+    state.sortOrder = $("#sortOrder").value;
+    renderCards();
+  });
+  $("#remoteIcons").addEventListener("change", () => {
+    state.remoteIcons = state.externalRequestsAllowed && $("#remoteIcons").checked;
+    renderCards();
+  });
+  $("#webSearchBtn").addEventListener("click", () => {
+    const query = queryElement.value.trim();
+    if (state.apiReady && state.externalRequestsAllowed && query && query.length <= 256) {
+      renderDDG(query);
     }
   });
 
@@ -824,6 +1006,9 @@
     state.ddgAbort = controller;
     try {
       const data = await apiFetch(API.ddg(query), { signal: controller.signal });
+      if (controller.signal.aborted || state.ddgAbort !== controller) {
+        return;
+      }
       const items = Array.isArray(data.results) ? data.results : [];
       for (const item of items.slice(0, 10)) {
         const url = safeURL(item.url);
@@ -854,7 +1039,7 @@
       fullResults.textContent = "Open full DuckDuckGo results";
       ddgNote.appendChild(fullResults);
     } catch (error) {
-      if (error.name !== "AbortError") {
+      if (error.name !== "AbortError" && state.ddgAbort === controller) {
         ddgStatus.textContent = "Unavailable";
       }
     } finally {

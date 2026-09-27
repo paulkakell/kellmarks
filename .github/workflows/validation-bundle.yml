@@ -29,7 +29,7 @@ jobs:
           destination="${RUNNER_TEMP}/kellmarks-validation"
           mkdir -p "$destination/wheels"
           git archive --format=tar.gz --prefix=kellmarks/ HEAD > "$destination/source.tar.gz"
-          python -m pip download --only-binary=:all: -r requirements-dev.txt --dest "$destination/wheels"
+          python -m pip download --only-binary=:all: -r requirements-dev.txt -r requirements-browser.txt --dest "$destination/wheels"
           printf 'version=%s\ncommit=%s\npython=3.13\nplatform=linux-x86_64\n' "$version" "$revision" > "$destination/PROVENANCE.txt"
           (cd "$destination" && sha256sum source.tar.gz wheels/* > SHA256SUMS)
           echo "name=kellmarks-${version}-${revision}-validation" >> "$GITHUB_OUTPUT"

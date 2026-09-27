@@ -31,7 +31,7 @@ Multi-user collaboration, public sharing and mandatory AI are not part of this p
 
 ### 02.01.00: safe import and privacy foundation
 
-Status: implementation in progress. No completion claim is made by this planning commit.
+Status: implemented foundation in PR #10; release promotion requires the exact-commit validation gates below. Import-wide field choices ship first; per-item conflict editing remains a refinement.
 
 Deliver a non-destructive import workflow, conservative duplicate review, explicit web search, remote-icon consent and useful sort controls. Keep data schema 2 and the existing CRUD/search/export contracts. The legacy API import request without a mode must continue to mean replacement; the dashboard selects merge explicitly. New guarded operations must detect library changes between preview and apply instead of overwriting concurrent edits.
 
@@ -150,8 +150,8 @@ Every implementation release must complete these gates, with actual output rathe
 | Release | Status | Evidence |
 | --- | --- | --- |
 | 02.00.03 baseline | Existing application baseline | `de40dfa9ebecb6aa48d92c94d9e3b6e13cf40e01` |
-| Roadmap 01.00.00 | Accepted scope recorded | #9; this document |
-| 02.01.00 | In progress, not released by this planning commit | Implementation and validation references must be added before promotion |
+| Roadmap 01.00.00 | Accepted scope recorded | #9; preparation commit `c3355bf6c4079c408f2cee5d7d116f1da0b3bfad` |
+| 02.01.00 | Import/privacy/sorting foundation implemented; release gates apply | PR #10; [release notes](releases/02.01.00.md) and [user guide](USER_GUIDE.md) |
 | 02.02.00 through 02.07.00 | Planned | Acceptance criteria above; no implementation claim |
 
 ## References

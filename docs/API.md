@@ -1,4 +1,4 @@
-# Kellmarks API 02.00.03
+# Kellmarks API 02.01.00
 
 Default base URL: `http://127.0.0.1:8787`
 
@@ -58,7 +58,7 @@ Rules:
 ```json
 {
   "ok": true,
-  "version": "02.00.03",
+  "version": "02.01.00",
   "dataSchemaVersion": 2,
   "time": "2026-08-13T12:00:00Z"
 }
@@ -182,3 +182,58 @@ Relevant status codes:
 - `429`: write, authentication, or external-search rate limit
 - `500`: persistent store failure
 - `502`: external search unavailable
+
+## Reviewed import additions in 02.01.00
+
+`POST /api/import/preview` is authenticated and subject to the write-rate limit even though it does not write. Supply JSON with `format` (`json`, the default, or `html`), `mode` (`merge`, the preview default, or `replace`), `titleSource` (`existing` or `incoming`) and `descriptionSource` (`existing` or `incoming`). Both source choices default to `existing` and apply across the import. JSON uses `entries`; HTML uses an `html` string. HTML is never rendered or fetched.
+
+```json
+{
+  "format": "json",
+  "mode": "merge",
+  "titleSource": "existing",
+  "descriptionSource": "incoming",
+  "entries": [
+    {"url": "https://example.com/reference", "title": "Reference", "tags": ["research"]}
+  ]
+}
+```
+
+A valid preview returns `valid: true`, a `baseRevision`, normalized `incomingEntries`, `mode`, `totalCount`, `newCount`, `duplicateCount`, `updatedCount`, `unchangedCount`, `replacedCount`, `details`, `invalidCount: 0` and `errors: []`. `updatedCount` counts distinct pre-existing bookmarks changed; duplicate and unchanged counts refer to incoming matches. Replacement reports incoming count as `newCount` and the old collection size as `replacedCount`; it does not perform merge analysis.
+
+Individual invalid entries return HTTP 200 with `valid: false`, a complete `invalidCount`, up to 50 `{index, error}` details (zero-based indices) and empty `incomingEntries`. Invalid format/options, ambiguous identity, final-library limits or malformed source return `400`. No invalid candidate is applied. The response is private, not cacheable, and can contain bookmark URLs.
+
+Apply by POSTing to `/api/import` with explicit `mode`, the same field-source choices, `format: "json"`, the returned `incomingEntries` as `entries`, and `baseRevision`. Use normalized JSON after an HTML preview so IDs and timestamps stay those that were reviewed.
+
+
+
+The following runnable local example previews and applies without exposing an authentication token in the URL:
+
+```python
+import json
+import os
+from urllib.request import Request, urlopen
+
+base = "http://127.0.0.1:8787"
+headers = {"Content-Type": "application/json"}
+if os.environ.get("KELLMARKS_AUTH_TOKEN"):
+    headers["Authorization"] = "Bearer " + os.environ["KELLMARKS_AUTH_TOKEN"]
+
+def post(path, body):
+    request = Request(base + path, data=json.dumps(body).encode(), headers=headers, method="POST")
+    with urlopen(request, timeout=10) as response:
+        return json.load(response)
+
+options = {"mode": "merge", "titleSource": "existing", "descriptionSource": "existing"}
+review = post("/api/import/preview", {**options, "entries": [{"url": "https://example.com", "title": "Example"}]})
+if not review["valid"]:
+    raise SystemExit(review["errors"])
+print({key: review[key] for key in ("newCount", "updatedCount", "totalCount")})
+if input("Apply this reviewed import? Type yes: ") == "yes":
+    result = post("/api/import", {**options, "entries": review["incomingEntries"], "baseRevision": review["baseRevision"]})
+    print(result)
+```
+
+Apply revalidates the entire candidate under the store lock. A mismatching revision returns `409`; preview again instead of ignoring the conflict. A missing/malformed revision returns `400`. Success includes the legacy `imported`/`backupCreated` fields plus `mode`, `added`, `updated` and `totalCount`. The original no-mode `/api/import` contract still replaces the collection and does not require a revision. New dashboard code never uses this unguarded compatibility path.
+
+`GET /api/health` adds `externalRequestsAllowed`. `KELLMARKS_EXTERNAL_REQUESTS=0` makes `/api/external/ddg` return `403` before any upstream request. Authentication and other security gates still run first. The default `1` preserves direct API behavior; ordinary dashboard search no longer invokes DDG automatically.

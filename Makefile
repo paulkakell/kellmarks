@@ -1,4 +1,4 @@
-.PHONY: install test lint typecheck security dependencies build performance validate
+.PHONY: install test lint typecheck security dependencies build performance browser validate
 
 install:
 	python -m pip install -r requirements-dev.txt
@@ -27,5 +27,8 @@ build:
 
 performance:
 	python scripts/benchmark.py
+
+browser:
+	python scripts/browser_checks.py
 
 validate: build lint typecheck security dependencies test performance

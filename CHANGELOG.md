@@ -2,6 +2,31 @@
 
 All notable changes are recorded here. Kellmarks versions use `Release.Feature.BugFix` in fixed-width `xx.xx.xx` form.
 
+## [02.01.00] - 2026-09-27
+
+### Added
+
+- **#9 / PR #10 / KM-R01:** Reviewed import API and dashboard dialog. Merge is the dashboard default; replacement remains explicit. JSON and browser bookmark HTML are validated without rendering or fetching imported content. Browser folders map to hierarchical tags.
+- Conservative URL duplicate identity, combined tags, import-wide title/description choices, retained existing URLs/IDs/creation times/icons, invalid-entry review and total-library validation. Ambiguous existing duplicates and cross-URL ID collisions fail rather than silently choosing a target.
+- SHA-256 library revisions prevent a reviewed import from overwriting concurrent library changes. Preview is read-only; successful apply creates a private pre-import backup under the existing atomic lock.
+- **KM-R04:** Title, recently-added and recently-updated sorting, with deterministic ties.
+- **KM-R06:** Separate web-search action, off-by-default session-only remote icons, operator `KELLMARKS_EXTERNAL_REQUESTS` switch and additive health capability field.
+- Complete roadmap revision 01.00.00 for all eleven accepted feature areas, seven release milestones, acceptance criteria and release gates. Later milestones are explicitly planned.
+- Import/security regression tests, real-browser scenarios, a merge-performance budget and a read-only, version/commit-addressed source-and-dependency validation bundle with checksums.
+
+### Fixed
+
+- Stop automatically forwarding dashboard library searches to DuckDuckGo. Cancel stale external responses when a query changes.
+- Stop silently truncating/normalizing imported values in the browser before authoritative validation.
+- Require the server for reviewed imports rather than silently replacing disconnected browser-local data. Export of browser-local data remains available.
+- Correct the fallback server-guide link to the maintained main branch and keep new controls usable on narrow screens.
+
+### Compatibility and release evidence
+
+Classification: compatible API additions and privacy/data-safety fixes. Data schema 2, runtime dependency versions, existing CRUD/search/export contracts and legacy `POST /api/import` without `mode` remain unchanged. The dashboard's import interaction and external-request defaults intentionally change as described above. `KELLMARKS_EXTERNAL_REQUESTS` defaults to `1` for direct API compatibility; `0` is an operator deny policy. No database migration is required.
+
+Preparatory roadmap commit: `c3355bf6c4079c408f2cee5d7d116f1da0b3bfad`. Implementation commits and exact validation outcomes are recorded in PR #10 and the versioned release notes; no future hash is claimed. This release does not implement the remaining roadmap milestones.
+
 ## [02.00.03] - 2026-09-27
 
 ### Fixed

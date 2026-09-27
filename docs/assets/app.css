@@ -103,3 +103,16 @@ input:focus,textarea:focus{box-shadow:var(--focus);}
 .banner{padding:10px 14px;border-bottom:1px solid rgba(255,215,0,.18);color:rgba(255,255,255,.78);font-size:12px;background:rgba(255,215,0,.06);}
 .banner a{color:#ffffff;text-decoration:underline;}
 @media (max-width:980px){main{grid-template-columns:1fr;} .brand{min-width:200px;}}
+
+/* Reviewed import and explicit privacy controls. */
+.library-tools{padding:12px 14px;border-bottom:var(--border);}
+.tool-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;}
+select{border:1px solid rgba(255,215,0,.35);background:#171717;color:var(--fg);border-radius:10px;padding:10px;font:inherit;max-width:100%;}
+select:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
+button:disabled{cursor:not-allowed;opacity:.5;transform:none;}
+.checkbox-label{display:flex;align-items:center;gap:8px;line-height:1.5;}
+.checkbox-label input{width:18px;height:18px;flex-shrink:0;}
+.import-details{max-height:220px;overflow:auto;font-size:12px;overflow-wrap:anywhere;}
+#importSummary{line-height:1.5;overflow-wrap:anywhere;}
+dialog{max-height:calc(100dvh - 32px);overflow:auto;}
+@media (max-width:620px){.bar{flex-wrap:wrap;}.search{order:3;flex-basis:100%;}.brand{flex:1;}.row{grid-template-columns:1fr;}.panel-head{flex-wrap:wrap;}.modal-foot{flex-wrap:wrap;}.grid{grid-template-columns:1fr;}}

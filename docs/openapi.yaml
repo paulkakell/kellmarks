@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kellmarks API
-  version: "02.00.03"
+  version: "02.01.00"
   description: >-
     Protected local-first bookmark API. Loopback access may be unauthenticated only
     when the server has no configured token and the request does not traverse a proxy.
@@ -116,24 +116,59 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Store" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/import/preview:
+    post:
+      summary: Review a merge or replacement without writing
+      description: >-
+        Validates JSON entries or browser bookmark HTML and the complete candidate.
+        Defaults to merge. Individual invalid entries return a valid=false preview;
+        invalid options, ambiguous identity or candidate limits return 400.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ImportSource" }
+      responses:
+        "200":
+          description: Private read-only preview, valid or invalid
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportPreview" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "413": { $ref: "#/components/responses/TooLarge" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "500": { $ref: "#/components/responses/StoreFailure" }
   /api/import:
     post:
-      summary: Validate and replace the complete data store
+      summary: Apply a reviewed import or a legacy replacement
+      description: >-
+        An explicit mode selects the guarded workflow and requires baseRevision.
+        Reuse normalized incomingEntries from preview as entries. A stale library
+        returns 409. Omit mode only for the unchanged legacy replacement contract.
+        Successful writes preserve the previous library in a private rolling backup.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [entries]
-              properties:
-                entries:
-                  type: array
-                  maxItems: 5000
-                  items: { $ref: "#/components/schemas/Entry" }
+              oneOf:
+                - allOf:
+                    - $ref: "#/components/schemas/ImportSource"
+                    - required: [mode, baseRevision]
+                - type: object
+                  required: [entries]
+                  not: { required: [mode] }
+                  properties:
+                    entries:
+                      type: array
+                      maxItems: 5000
+                      items: { $ref: "#/components/schemas/ImportEntry" }
       responses:
         "200":
-          description: Import result
+          description: Import committed; guarded workflow adds mode and counts
           content:
             application/json:
               schema:
@@ -142,11 +177,18 @@ paths:
                 properties:
                   imported: { type: integer, minimum: 0 }
                   backupCreated: { type: boolean }
+                  mode: { type: string, enum: [merge, replace] }
+                  added: { type: integer, minimum: 0 }
+                  updated: { type: integer, minimum: 0 }
+                  totalCount: { type: integer, minimum: 0 }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
         "413": { $ref: "#/components/responses/TooLarge" }
         "415": { $ref: "#/components/responses/UnsupportedMediaType" }
         "429": { $ref: "#/components/responses/RateLimited" }
+        "500": { $ref: "#/components/responses/StoreFailure" }
   /api/tags/tree:
     get:
       summary: Return the hierarchical tag tree
@@ -189,6 +231,7 @@ paths:
   /api/external/ddg:
     get:
       summary: Bounded DuckDuckGo Instant Answer proxy
+      description: Denied before network access when KELLMARKS_EXTERNAL_REQUESTS=0.
       parameters:
         - name: q
           in: query
@@ -216,6 +259,7 @@ paths:
                         snippet: { type: string, maxLength: 280 }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
         "429": { $ref: "#/components/responses/RateLimited" }
         "502":
           description: External search unavailable
@@ -230,13 +274,78 @@ components:
       bearerFormat: opaque
       description: Random token from KELLMARKS_AUTH_TOKEN, at least 32 characters.
   schemas:
+    ImportEntry:
+      allOf:
+        - $ref: "#/components/schemas/EntryInput"
+        - type: object
+          properties:
+            id: { type: string, pattern: "^[A-Za-z0-9._:-]{1,80}$" }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+    ImportSource:
+      type: object
+      description: >-
+        Use entries when format is json or omitted; use html when format is html.
+        mode defaults to merge for preview, but omission means legacy replacement
+        on the apply endpoint. Field choices apply import-wide. Empty incoming
+        descriptions never erase existing descriptions during merge.
+      anyOf:
+        - required: [entries]
+        - required: [format, html]
+      properties:
+        format: { type: string, enum: [json, html], default: json }
+        mode: { type: string, enum: [merge, replace] }
+        titleSource: { type: string, enum: [existing, incoming], default: existing }
+        descriptionSource: { type: string, enum: [existing, incoming], default: existing }
+        baseRevision: { type: string, pattern: "^[0-9a-f]{64}$" }
+        html: { type: string, minLength: 1 }
+        entries:
+          type: array
+          maxItems: 5000
+          items: { $ref: "#/components/schemas/ImportEntry" }
+    ImportPreview:
+      type: object
+      required: [valid, mode, invalidCount, errors, incomingEntries]
+      properties:
+        valid: { type: boolean }
+        mode: { type: string, enum: [merge, replace] }
+        invalidCount: { type: integer, minimum: 0 }
+        errors:
+          type: array
+          maxItems: 50
+          items:
+            type: object
+            required: [index, error]
+            properties:
+              index: { type: integer, minimum: 0 }
+              error: { type: string }
+        baseRevision: { type: string, pattern: "^[0-9a-f]{64}$" }
+        incomingEntries:
+          type: array
+          items: { $ref: "#/components/schemas/Entry" }
+        newCount: { type: integer, minimum: 0 }
+        duplicateCount: { type: integer, minimum: 0 }
+        updatedCount: { type: integer, minimum: 0 }
+        unchangedCount: { type: integer, minimum: 0 }
+        replacedCount: { type: integer, minimum: 0 }
+        totalCount: { type: integer, minimum: 0 }
+        details:
+          type: array
+          items:
+            type: object
+            required: [action, url, id]
+            properties:
+              action: { type: string, enum: [new, merge, unchanged] }
+              url: { type: string }
+              id: { type: string }
     Health:
       type: object
-      required: [ok, version, dataSchemaVersion, time]
+      required: [ok, version, dataSchemaVersion, externalRequestsAllowed, time]
       properties:
         ok: { type: boolean }
-        version: { type: string, example: "02.00.03" }
+        version: { type: string, example: "02.01.00" }
         dataSchemaVersion: { type: integer, example: 2 }
+        externalRequestsAllowed: { type: boolean, example: true }
         time: { type: string, format: date-time }
     EntryInput:
       type: object
@@ -289,6 +398,16 @@ components:
         error: { type: string }
         requestId: { type: string }
   responses:
+    Conflict:
+      description: Library changed after preview; preview again before retrying
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    StoreFailure:
+      description: Persistent-store operation failed; recheck library before retrying
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
     BadRequest:
       description: Invalid request or data
       content:
