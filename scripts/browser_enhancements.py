@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 from typing import Any
 
+from browser_network import intercept_requests
 from playwright.sync_api import expect
 
 VERSION = (Path(__file__).resolve().parents[1] / "VERSION").read_text().strip()
@@ -49,7 +50,7 @@ def run_feature_scenarios(browser: Any, server: Any) -> list[str]:
             else:
                 route.continue_()
 
-        page.route("**/*", route_request)
+        intercept_requests(page, route_request)
         assert page.request.post(base + "/api/import", data={"entries": []}).ok
         page.goto(base)
         expect(page.locator("#versionStatus")).to_have_text("Up to date")

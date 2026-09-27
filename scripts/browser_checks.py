@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from browser_enhancements import run_feature_scenarios
+from browser_network import intercept_requests
 from playwright.sync_api import expect, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -103,7 +104,7 @@ def main() -> None:
                     else:
                         route.continue_()
 
-                page.route("**/*", routing)
+                intercept_requests(page, routing)
                 initial = [
                     bookmark("https://a.test/", "Alpha", id="alpha", iconUrl="https://icons.test/a.png", createdAt="2020-01-01T00:00:00Z", updatedAt="2026-09-20T00:00:00Z"),
                     bookmark("https://z.test/", "Zulu", id="zulu", createdAt="2026-09-27T00:00:00Z", updatedAt="2026-09-01T00:00:00Z"),
