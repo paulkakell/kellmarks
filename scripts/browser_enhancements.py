@@ -82,7 +82,7 @@ def run_feature_scenarios(browser: Any, server: Any) -> list[str]:
         completed.append("favicon consent, custom-icon precedence, failed-image fallback and creation-only tags")
 
         page.locator("#themeBtn").click()
-        expect(page.locator("#themePreset option")).to_have_count(21)
+        expect(page.locator("#themePreset option")).to_have_count(23)
         expect(page.locator("#themePreset")).to_have_value("gold-black")
         presets = page.evaluate("KellmarksEnhancements.THEMES.map(t => ({id:t.id, accent:t.colors.accent}))")
         for preset in presets:
@@ -112,7 +112,7 @@ def run_feature_scenarios(browser: Any, server: Any) -> list[str]:
         page.locator("#applyTheme").click()
         page.reload()
         expect(page.locator("html")).to_have_attribute("data-theme", "gold-black")
-        completed.append("all 20 presets, custom colors, persistence, cancel, contrast warning and gold/black reset")
+        completed.append("all 22 presets, custom colors, persistence, cancel, contrast warning and gold/black reset")
 
         for state, latest, message in [
             ("update_available", "02.01.02", "Update available: v02.01.02"),

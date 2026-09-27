@@ -1,6 +1,6 @@
 # Kellmarks
 
-[![Version 02.01.01](https://img.shields.io/badge/version-02.01.01-FFD700?style=flat-square&labelColor=000000)](docs/releases/02.01.01.md)
+[![Version 02.01.02](https://img.shields.io/badge/version-02.01.02-FFD700?style=flat-square&labelColor=000000)](docs/releases/02.01.02.md)
 [![Latest release](https://img.shields.io/github/v/release/paulkakell/kellmarks?display_name=tag&sort=semver&style=flat-square&label=release)](https://github.com/paulkakell/kellmarks/releases/latest)
 [![Python 3.10 and 3.13](https://img.shields.io/badge/python-3.10%20%7C%203.13-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![Data schema 2](https://img.shields.io/badge/data%20schema-2-FFD700?style=flat-square&labelColor=000000)](docs/API.md)
@@ -9,7 +9,7 @@
 
 Kellmarks is a local-first bookmark dashboard with hierarchical tags, Boolean search, import and export, and a small Flask API backed by one private JSON file.
 
-Version: **02.01.01**
+Version: **02.01.02**
 
 ## Security model
 
@@ -30,7 +30,8 @@ See [SECURITY.md](SECURITY.md) and [docs/SECURITY_ARCHITECTURE.md](docs/SECURITY
 
 ## Features
 
-- Gold/black by default, with 20 theme presets and custom browser-local colors
+- Gold/black by default, with 22 theme presets including green and amber monochrome monitors, plus custom browser-local colors
+- Click anywhere on a bookmark card to open its page; Edit, Delete and tag buttons retain their own actions
 - Site favicon fallback with session-only remote-image consent
 - Offline site-tag suggestions for new entries with blank tags; no automatic retagging on edit
 - Footer release check with cached, privacy-preserving server lookup and explicit offline/disabled status

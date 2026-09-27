@@ -14,6 +14,7 @@ from typing import Any
 
 from browser_enhancements import run_feature_scenarios
 from browser_network import intercept_requests
+from browser_retro_cards import run_retro_card_scenarios
 from playwright.sync_api import expect, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -80,7 +81,9 @@ def main() -> None:
     completed: list[str] = []
     with sync_playwright() as playwright:
         executable = os.getenv("KELLMARKS_BROWSER_EXECUTABLE")
-        options = {"executable_path": executable} if executable else {}
+        # Use full Chromium's headless mode for native background-tab gestures.
+        # The install command already provides this browser alongside headless shell.
+        options = {"executable_path": executable} if executable else {"channel": "chromium"}
         browser = playwright.chromium.launch(headless=True, **options)
         try:
             with server() as base:
@@ -220,6 +223,7 @@ def main() -> None:
                 page.close()
                 completed.append("operator denial overrides all dashboard external controls")
             completed.extend(run_feature_scenarios(browser, server))
+            completed.extend(run_retro_card_scenarios(browser, server))
         finally:
             browser.close()
     print(json.dumps({"browserScenariosPassed": len(completed), "scenarios": completed}, indent=2))
