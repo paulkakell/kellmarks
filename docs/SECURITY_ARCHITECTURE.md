@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Kellmarks 02.00.03 is designed for one trusted owner, local-first operation, and controlled remote access. The primary assets are bookmark confidentiality, bookmark integrity, the bearer token, the private data file, and operational availability.
+Kellmarks 02.01.00 is designed for one trusted owner, local-first operation, and controlled remote access. The primary assets are bookmark confidentiality, bookmark integrity, the bearer token, the private data file, and operational availability.
 
 ## Trust boundaries
 
@@ -19,6 +19,7 @@ Flask application
 Private JSON store and backups
 
 Flask application
+  | operator external-request policy, explicit user action
   | fixed HTTPS endpoint, bounded response
   v
 DuckDuckGo Instant Answer API
@@ -153,3 +154,28 @@ Runtime and development dependencies are version-pinned. CI installs into a fres
 - A reverse proxy can still log sensitive bookmark URLs unless configured not to.
 
 Use shared rate limiting, centralized identity, a database, icon proxying, and dedicated monitoring when those limits matter.
+
+## Reviewed import boundary in 02.01.00
+
+```text
+Untrusted JSON or browser bookmark HTML
+  | request byte limit, authenticated/rate-limited preview
+  v
+Text-only HTML parser / entry validation
+  | conservative identity, explicit field choices, validated final limits
+  v
+Read-only candidate + revision of existing entries
+  | explicit Apply, same lock, revision comparison
+  v
+Private backup -> fsync + atomic replacement
+```
+
+`docs/server/importing.py` has no networking. HTML is parsed as text, not inserted into a document, and script/style/resource attributes are not executed or fetched. Folder nesting is capped at 32 and normal entry/tag/URL constraints still apply. Invalid imports are not partially applied. Duplicate identity does not discard query parameters, fragments or meaningful path distinctions. Import-wide field preferences never overwrite existing URL, ID, creation time or icon.
+
+The revision is a concurrency check, not an authentication token or a signature approving particular imported content. Every apply is revalidated under the same cross-process lock. Authenticated clients already have full mutation privileges. The old no-mode replacement API remains intentionally available for compatibility and lacks the new preview guard; the dashboard never uses it for reviewed imports.
+
+The preview response may contain bookmark URLs and normalized content. It has the same authentication, no-store policy and request-ID logging as other private APIs. Logs contain paths and outcomes, not imported data, titles, query strings, preview revisions or credentials. The UI reports uncertain/failed requests without claiming that a commit definitely did not happen.
+
+`KELLMARKS_EXTERNAL_REQUESTS=0` denies DDG before opening an upstream connection and removes remote sources from `img-src`. The dashboard fails closed when the health capability is absent. Remote icon consent lives only in page memory and resets on reload. Disabling icons stops future application-created image loads; it cannot undo requests already sent. Operator setting changes require restart and open-page reload. The switch is not a system-wide egress firewall and does not block explicit navigation to a saved website. Future metadata, health, preservation and AI routes must implement the same central policy; those routes do not exist in this release.
+
+No authentication or authorization model is widened; no arbitrary server-side URL fetching is added; no runtime dependency is changed. Browser-test dependencies are separate development-only tools and receive their own CI audit. Whole-library backups remain a single rolling `.bak`, not the future multi-snapshot recovery or Trash feature. Keep independent copies before replacing the backup or restoring.

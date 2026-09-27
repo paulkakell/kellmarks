@@ -18,14 +18,14 @@
           <div>
             <div class="brand-title">
               <h1>Kellmarks</h1>
-              <span class="version-badge" aria-label="Kellmarks version 02.00.03">v02.00.03</span>
+              <span class="version-badge" aria-label="Kellmarks version 02.01.00">v02.01.00</span>
             </div>
             <div class="sub">Local first, protected, searchable</div>
           </div>
         </div>
 
         <div class="search" role="search">
-          <input id="q" maxlength="512" autocomplete="off" placeholder='Search: supports AND OR NOT and ( )  Example: vpn AND (aws OR azure)'>
+          <input aria-label="Search my library" id="q" maxlength="512" autocomplete="off" placeholder='Search: supports AND OR NOT and ( )  Example: vpn AND (aws OR azure)'>
           <div class="kbd" title="Shortcut">Ctrl K</div>
         </div>
 
@@ -59,6 +59,19 @@
             <span id="bannerText"></span>
           </div>
 
+          <div class="library-tools">
+            <div class="tool-row">
+              <label for="sortOrder">Sort bookmarks</label>
+              <select id="sortOrder">
+                <option value="title">Title</option>
+                <option value="createdAt">Recently added</option>
+                <option value="updatedAt">Recently updated</option>
+              </select>
+              <button class="btn secondary" id="webSearchBtn" type="button" disabled>Search the web</button>
+            </div>
+            <p class="help" id="privacyNotice">Library search stays here. Web search sends the current query to DuckDuckGo only when selected.</p>
+            <label class="checkbox-label"><input id="remoteIcons" type="checkbox" disabled> Allow remote icons for this session (contacts their websites)</label>
+          </div>
           <div id="cards" class="grid"></div>
           <div id="empty" class="empty" style="display:none;"></div>
         </section>
@@ -126,7 +139,48 @@
     </form>
   </dialog>
 
-  <input type="file" id="filePick" accept="application/json,.json" style="display:none;">
+  <dialog id="importDialog" aria-labelledby="importTitle">
+    <div class="modal-head">
+      <h2 class="mh" id="importTitle">Review import</h2>
+      <button class="close" id="closeImport" type="button">Close</button>
+    </div>
+    <div class="modal-body">
+      <p id="importFileName" class="help"></p>
+      <div class="field">
+        <label for="importMode">Import action</label>
+        <select id="importMode">
+          <option value="merge">Merge with my library</option>
+          <option value="replace">Replace my entire library</option>
+        </select>
+        <div class="help">Merge retains existing bookmarks and combines tags for matching URLs. Replacement removes bookmarks not in the file.</div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="importTitleSource">Duplicate titles</label>
+          <select id="importTitleSource">
+            <option value="existing">Keep existing title</option>
+            <option value="incoming">Use incoming title</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="importDescriptionSource">Duplicate descriptions</label>
+          <select id="importDescriptionSource">
+            <option value="existing">Keep existing description</option>
+            <option value="incoming">Use nonempty incoming description</option>
+          </select>
+        </div>
+      </div>
+      <p class="help">Choices apply to all duplicates in this import. Original saved URLs, IDs, creation times and icons are retained when merging.</p>
+      <div id="importSummary" role="status" aria-live="polite">Preview before applying. No changes have been made.</div>
+      <div id="importDetails" class="import-details"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn secondary" id="cancelImport" type="button">Cancel</button>
+      <button class="btn secondary" id="previewImport" type="button">Preview</button>
+      <button class="btn" id="applyImport" type="button" disabled>Apply import</button>
+    </div>
+  </dialog>
+  <input type="file" id="filePick" accept="application/json,text/html,.json,.html,.htm" style="display:none;">
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="assets/app.js"></script>

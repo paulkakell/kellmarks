@@ -107,3 +107,12 @@ jobs:
           assert health["version"] == expected_version
           assert health["dataSchemaVersion"] == 2
           PY
+
+      - name: Install and audit isolated browser-test dependencies
+        run: |
+          python -m pip install -r requirements-browser.txt
+          python -m pip check
+          pip-audit --no-deps -r requirements-browser.txt
+          python -m playwright install --with-deps chromium
+      - name: Run real-browser import, privacy, sorting, and mobile scenarios
+        run: python scripts/browser_checks.py

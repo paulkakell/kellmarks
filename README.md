@@ -1,6 +1,6 @@
 # Kellmarks
 
-[![Version 02.00.03](https://img.shields.io/badge/version-02.00.03-FFD700?style=flat-square&labelColor=000000)](docs/releases/02.00.03.md)
+[![Version 02.01.00](https://img.shields.io/badge/version-02.01.00-FFD700?style=flat-square&labelColor=000000)](docs/releases/02.01.00.md)
 [![Latest release](https://img.shields.io/github/v/release/paulkakell/kellmarks?display_name=tag&sort=semver&style=flat-square&label=release)](https://github.com/paulkakell/kellmarks/releases/latest)
 [![Python 3.10 and 3.13](https://img.shields.io/badge/python-3.10%20%7C%203.13-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![Data schema 2](https://img.shields.io/badge/data%20schema-2-FFD700?style=flat-square&labelColor=000000)](docs/API.md)
@@ -9,7 +9,7 @@
 
 Kellmarks is a local-first bookmark dashboard with hierarchical tags, Boolean search, import and export, and a small Flask API backed by one private JSON file.
 
-Version: **02.00.03**
+Version: **02.01.00**
 
 ## Security model
 
@@ -36,9 +36,21 @@ See [SECURITY.md](SECURITY.md) and [docs/SECURITY_ARCHITECTURE.md](docs/SECURITY
 - HTTP and HTTPS bookmark validation
 - Protected JSON CRUD API
 - Private, atomic file-backed persistence
-- Validated import and export
+- Reviewed JSON and browser bookmark HTML import, defaulting to merge
+- Conservative duplicate review, field-source choices and stale-preview protection
+- Explicit replacement with a private pre-import backup
+- Title, recently added and recently updated sorting
+- Library-only search by default; explicit web-search action
+- Session-only remote-icon consent and an operator external-request switch
+- Validated export; existing schema-2 API compatibility
 - Optional DuckDuckGo Instant Answer proxy with response and rate limits
-- Static read-only demonstration mode
+- Static demonstration with separate browser-local data; reviewed import requires Flask
+
+## Roadmap and user guide
+
+The [accepted project roadmap](docs/ROADMAP.md) covers all eleven feature areas, their dependencies and acceptance criteria. **02.01.00 implements the import/privacy/sorting foundation, not the entire roadmap.** Bulk editing, Trash/undo, capture, smart collections, reading workflow, notes, link health, offline synchronization and local AI are planned, not yet available.
+
+See the [user guide](docs/USER_GUIDE.md) for merge versus replacement, duplicate choices, HTML folder mapping, privacy settings, sorting, recovery and limitations. Tracking: [issue #9](https://github.com/paulkakell/kellmarks/issues/9), [PR #10](https://github.com/paulkakell/kellmarks/pull/10).
 
 ## Requirements
 
@@ -95,6 +107,15 @@ A production WSGI server may bind inside an isolated container or private networ
 
 `docs/index.html` can be served without the Flask API. It loads only `docs/assets/sample-data.json` and uses browser-local fallback storage. Static mode is not shared persistence. The former public runtime file `docs/assets/data.json` was removed in 02.00.00.
 
+## Disable application-owned external requests
+
+```bash
+export KELLMARKS_EXTERNAL_REQUESTS=0
+python docs/server/app.py
+```
+
+This denies the DuckDuckGo API before making an outbound request and disallows remote icon sources through the response security policy. The dashboard also disables those controls. Explicitly opening a saved website is still normal user-directed browser navigation. With the default value `1`, library searches remain local; the user must select **Search the web**, or opt into remote icons for the current page session. Server operators and direct API clients remain trusted.
+
 ## Development checks
 
 ```bash
@@ -103,6 +124,16 @@ make validate
 ```
 
 `make validate` runs compilation, JavaScript syntax validation, unit/integration/regression tests, coverage, Ruff, mypy, Bandit, the secret-pattern scan, pip-audit, release validation, and the performance budget.
+
+Browser scenarios are a separate, pinned development dependency:
+
+```bash
+python -m pip install -r requirements-browser.txt
+python -m playwright install chromium
+make browser
+```
+
+`make browser` launches isolated local stores, exercises the actual dashboard and mocks external search responses. It covers import cancellation, merge/replacement, stale previews, HTML safety, sorting, icon consent, operator denial and mobile layout. Set `KELLMARKS_BROWSER_EXECUTABLE` only to use an already installed Chromium for testing. GitHub's quality gate installs browser dependencies and runs these scenarios in a clean environment.
 
 GitHub Actions repeats the suite on Python 3.10 and 3.13 and runs CodeQL for Python and JavaScript.
 

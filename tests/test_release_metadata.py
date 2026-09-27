@@ -16,7 +16,7 @@ def read(relative: str) -> str:
 
 def test_release_metadata_is_aligned() -> None:
     version = read("VERSION").strip()
-    assert version == "02.00.03"
+    assert version == "02.01.00"
     assert VERSION_PATTERN.fullmatch(version)
     assert kellmarks.APP_VERSION == version
     assert f'const APP_VERSION = "{version}";' in read("docs/assets/app.js")
@@ -39,12 +39,8 @@ def test_version_badges_are_aligned() -> None:
 
 
 def test_permanent_workflows_use_immutable_action_references() -> None:
-    for relative in (
-        ".github/workflows/ci.yml",
-        ".github/workflows/codeql.yml",
-        ".github/workflows/release.yml",
-    ):
-        for line in read(relative).splitlines():
+    for path in (ROOT / ".github" / "workflows").glob("*.yml"):
+        for line in path.read_text(encoding="utf-8").splitlines():
             if "uses:" in line:
                 assert ACTION_PATTERN.search(line.strip()), line
 

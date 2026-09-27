@@ -1,0 +1,6 @@
+# Optional browser-test tools only. Not installed on the application server.
+# 1.57.0 is the tested runner baseline; browser engines are installed explicitly.
+playwright==1.57.0
+pyee==13.0.1
+greenlet==3.5.1
+typing_extensions==4.15.0

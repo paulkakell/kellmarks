@@ -1,0 +1,74 @@
+# KellMarks user guide 02.01.00
+
+This guide describes implemented behavior. The [roadmap](ROADMAP.md) describes later work and should not be read as a current feature list.
+
+## Bring in an existing collection
+
+Start the Flask service and open KellMarks. Select **Import**, then choose a KellMarks JSON export, a JSON array of bookmark objects, or a browser bookmark export ending in `.html` or `.htm`. The first preview defaults to **Merge with my library**. Nothing is saved during preview.
+
+For example, import a second browser's bookmarks while keeping everything already organized in KellMarks. The preview reports new entries, matching URLs, existing bookmarks that would change, unchanged matches and the final library size. The detail pane shows the first 100 items; the summary counts the complete import.
+
+Choose **Apply import** only after reviewing the result. A private pre-import `.bak` is created before the atomic save. Successful apply reloads the dashboard. Cancel, Escape or Close discards the preview without changing the library. Closing is temporarily disabled while an apply request is in progress, to avoid suggesting that an already-sent write was cancelled.
+
+### Duplicate choices
+
+For matching URLs, tags are combined case-insensitively. The existing saved URL, ID, creation timestamp and icon remain unchanged. **Keep existing title** and **Keep existing description** are the defaults. Selecting **Use incoming title** or **Use nonempty incoming description** changes those fields for every matching bookmark in this import. An empty imported description does not erase an existing description. Change either option, then select **Preview** again before applying.
+
+Example: import a duplicate reference with tag `research/aws`. Keep its carefully edited existing title, but choose the incoming nonempty description. Its old tags and new tag are retained. This release has import-wide choices, not a separate editor for each conflict; edit the source file or bookmarks for per-item decisions. Richer conflict editing remains in the roadmap.
+
+URLs are compared conservatively. Hostname case, explicit default ports and an omitted root slash compare equally. HTTP and HTTPS, different query values, different fragments, path case and non-root trailing slashes remain distinct. Arbitrary tracking or query parameters are not stripped. Existing URL text is retained even when a normalized identity matched it.
+
+If an incoming URL matches multiple existing bookmarks, the merge is blocked. Review those existing entries individually first. An incoming ID associated with a different URL is also blocked; remove that ID from the import object so preview can assign a new one, or correct the URL. Invalid entries, duplicate IDs inside the file, over-limit merged tags and oversized resulting libraries do not cause a partial import.
+
+### Browser HTML
+
+KellMarks reads bookmark HTML as text without opening saved URLs or loading images, scripts or other embedded resources. Browser folder names become hierarchical tags. For example, folders `Work` then `AWS` produce `Work/AWS`. Literal slashes and percent signs inside folder names are represented as `%2F` and `%25`, so a folder name cannot accidentally create a different hierarchy. A folder depth above 32 or tag path above the normal 80-character limit is rejected.
+
+Titles, URLs and supported description text are imported. Browser-specific metadata, favicon blobs, browser timestamps and empty folders are not preserved in this first importer. Created/updated timestamps for HTML entries are assigned during preview. KellMarks JSON exports preserve their valid IDs and timestamps for new entries.
+
+### Replace everything deliberately
+
+Select **Replace my entire library**, preview again, then review the number of existing and incoming bookmarks. Apply requires a second confirmation. A JSON file with an empty entries array can intentionally clear the library in this mode. Merging an empty array does not delete existing entries. Replacement does not combine tags or apply duplicate field preferences; the incoming library replaces the old one after validation.
+
+Example: restore a previously saved complete export. First export the current library to a separate file, then preview and confirm replacement. Do not treat the rolling `.bak` as a multi-version history.
+
+### Limits and failures
+
+The dashboard accepts files up to 1 MiB and at most 5,000 imported entries. The default server request limit is also 1 MiB, including the JSON envelope, so a file near the maximum can still exceed the request limit after serialization. The default resulting-library limits are 10,000 entries and 16 MiB. Each bookmark allows 32 tags, 80 characters per tag, a 120-character title, 600-character description and 2,048-character URL. Operator-configured limits may be stricter; the server is authoritative. No browser truncation silently turns invalid import data into accepted data.
+
+A preview returns up to 50 entry errors and the complete invalid count. Correct the source file and select it again. A stale preview means another edit occurred after review; preview again and inspect the new result. A failed or uncertain request requires a fresh preview before retrying. If the UI says the import was saved but reload failed, reload the page rather than repeating replacement. The atomic-write and backup protections do not replace independent backups or disk monitoring.
+
+Reviewed import requires an available Flask API. It is unavailable in file/static/browser-only fallback mode. Existing browser-local entries can still be exported and later imported into the server. This is not synchronization; the fallback and server stores remain separate.
+
+## Search privately and choose external requests
+
+Typing in **Search my library**, switching tags, sorting, editing or importing does not send the library query to a search provider. Use the existing Boolean grammar, for example `iam OR "zero trust"` under tag `cloud/aws`.
+
+**Search the web** explicitly sends the current query to DuckDuckGo through the server proxy. It is enabled only for a nonempty query of at most 256 characters when the server allows external requests. A new query cancels and hides stale external results. External responses are not automatically saved as bookmarks. Direct API clients can still request the proxy when the operator permits it.
+
+Remote bookmark icons are off on every page load. Selecting **Allow remote icons for this session** contacts the websites named by saved icon URLs. The choice is held in page memory, not persisted to disk, and resets on reload. Unchecking stops future image loads, but cannot retract requests already sent. Initial-letter placeholders remain available without external requests.
+
+For an operator-enforced policy, set:
+
+```bash
+export KELLMARKS_EXTERNAL_REQUESTS=0
+python docs/server/app.py
+```
+
+The server refuses the DDG endpoint before a network call and removes remote image sources from the response Content Security Policy. Dashboard controls are disabled. The default `1` preserves the direct API contract but does not enable automatic dashboard searches or icons. Valid boolean forms are `1/0`, `true/false`, `yes/no` and `on/off`, case-insensitive. Invalid values stop startup. Restart and reload open pages after changing it.
+
+This setting controls application-owned lookups, not all machine traffic. Clicking a saved website or an external documentation link remains explicit browser navigation. No metadata fetcher, link checker, preservation worker or AI provider is implemented yet; each must obey the policy when introduced.
+
+## Sort the current view
+
+Choose **Title**, **Recently added** or **Recently updated**. Sorting applies within the current query and tag scope. Dates sort newest first; equal values use title and then ID for stable ordering. The choice resets on page reload and is not yet a saved smart collection.
+
+Example: filter `cloud/aws`, search `security`, then choose **Recently added** to review the newest matching bookmarks. Sorting never triggers a web search.
+
+## Recovery and rollback
+
+Before an import, save an independent export. After a successful import, the previous file is at the configured data path plus `.bak`, by default `docs/server/instance/data.json.bak`. It is private and not available through static web routes. Copy it to a separate location before another import overwrites it. Select that copy as a JSON import, choose replacement, and review before restoring. Stop other writers while performing an operator-level file restore.
+
+Schema 2 is unchanged, so a 02.01.00 export is compatible with the prior 02.00.03 importer. Keep the previous code artifact and a private data copy before downgrading. Detailed operator steps are in [release notes](releases/02.01.00.md).
+
+There is no Trash, per-bookmark undo/history, backup browser, bulk tag editor, capture extension, read-later status, saved collection, offline sync or AI feature in this release. Those accepted features have explicit delivery milestones in the roadmap.

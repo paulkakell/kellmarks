@@ -23,9 +23,17 @@ from pathlib import Path
 from typing import Any, TypeVar, cast
 
 from flask import Flask, Response, g, jsonify, request, send_from_directory
+from importing import (
+    ImportConflict,
+    ImportProblem,
+    build_import_plan,
+    import_options,
+    library_revision,
+    parse_bookmark_html,
+)
 from werkzeug.exceptions import BadRequest, RequestEntityTooLarge, UnsupportedMediaType
 
-APP_VERSION = "02.00.03"
+APP_VERSION = "02.01.00"
 DATA_SCHEMA_VERSION = 2
 DEFAULT_PORT = 8787
 DEFAULT_MAX_REQUEST_BYTES = 1_048_576
@@ -527,6 +535,61 @@ class JsonStore:
             return backup
 
 
+    def reviewed_import(
+        self,
+        incoming: list[dict[str, Any]],
+        *,
+        mode: str,
+        title_source: str,
+        description_source: str,
+        apply: bool = False,
+        base_revision: Any = None,
+    ) -> dict[str, Any]:
+        if apply and (
+            not isinstance(base_revision, str)
+            or not re.fullmatch(r"[0-9a-f]{64}", base_revision)
+        ):
+            raise ImportProblem("baseRevision from a successful preview is required")
+        with advisory_file_lock(self.lock_path):
+            current = self._read_unlocked()
+            revision = library_revision(current["entries"])
+            if apply and not hmac.compare_digest(str(base_revision), revision):
+                raise ImportConflict("The library changed; preview this import again")
+            candidate, summary = build_import_plan(
+                current["entries"], incoming, mode=mode,
+                title_source=title_source, description_source=description_source,
+                now=utc_now_iso(),
+            )
+            candidate = normalize_import_entries(
+                candidate, self.max_entries, generate_missing_ids=False
+            )
+            replacement = {
+                "version": DATA_SCHEMA_VERSION,
+                "exportedAt": utc_now_iso(),
+                "entries": candidate,
+            }
+            size = len((json.dumps(replacement, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
+            if size > self.max_data_bytes:
+                raise ImportProblem("The resulting library exceeds the configured data size limit")
+            if not apply:
+                return {
+                    "valid": True, "mode": mode, "baseRevision": revision,
+                    "incomingEntries": incoming, "totalCount": len(candidate),
+                    "invalidCount": 0, "errors": [], **summary,
+                }
+            backup_created = self.data_path.exists()
+            if backup_created:
+                atomic_private_copy(
+                    self.data_path, self.data_path.with_suffix(self.data_path.suffix + ".bak")
+                )
+            self._write_unlocked(replacement)
+            return {
+                "imported": len(incoming), "backupCreated": backup_created,
+                "mode": mode, "added": summary["newCount"],
+                "updated": summary["updatedCount"], "totalCount": len(candidate),
+            }
+
+
 class SlidingWindowLimiter:
     def __init__(self) -> None:
         self._events: OrderedDict[str, deque[float]] = OrderedDict()
@@ -874,6 +937,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         AUTH_TOKEN=os.getenv("KELLMARKS_AUTH_TOKEN", ""),
         REQUIRE_AUTH=_env_bool("KELLMARKS_REQUIRE_AUTH", False),
         ENABLE_HSTS=_env_bool("KELLMARKS_ENABLE_HSTS", False),
+        EXTERNAL_REQUESTS_ALLOWED=_env_bool("KELLMARKS_EXTERNAL_REQUESTS", True),
         ALLOWED_ORIGINS=_validated_origins(_env_csv("KELLMARKS_ALLOWED_ORIGINS")),
         PUBLIC_ORIGIN=_validated_public_origin(
             os.getenv("KELLMARKS_PUBLIC_ORIGIN", "").strip()
@@ -1068,11 +1132,15 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
         response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
         response.headers["X-Frame-Options"] = "DENY"
+        image_policy = (
+            "img-src 'self' https: data:; "
+            if app.config["EXTERNAL_REQUESTS_ALLOWED"] else "img-src 'self' data:; "
+        )
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self'; "
             "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' https: data:; "
+            + image_policy +
             "connect-src 'self'; "
             "object-src 'none'; "
             "base-uri 'none'; "
@@ -1113,6 +1181,14 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
                 remoteAddress=request.remote_addr,
             )
         return response
+
+    @app.errorhandler(ImportConflict)
+    def handle_import_conflict(error: ImportConflict) -> tuple[Response, int]:
+        return json_error(str(error), 409)
+
+    @app.errorhandler(ImportProblem)
+    def handle_import_problem(error: ImportProblem) -> tuple[Response, int]:
+        return json_error(str(error), 400)
 
     @app.errorhandler(ValidationError)
     def handle_validation_error(error: ValidationError) -> tuple[Response, int]:
@@ -1161,6 +1237,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
                 "ok": True,
                 "version": APP_VERSION,
                 "dataSchemaVersion": DATA_SCHEMA_VERSION,
+                "externalRequestsAllowed": bool(app.config["EXTERNAL_REQUESTS_ALLOWED"]),
                 "time": utc_now_iso(),
             }
         )
@@ -1257,12 +1334,66 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
     def export_all() -> Response:
         return jsonify(store.read())
 
+    def read_import_source(payload: dict[str, Any]) -> Any:
+        source_format = payload.get("format", "json")
+        if source_format == "html":
+            return parse_bookmark_html(payload.get("html"), int(app.config["MAX_IMPORT_ENTRIES"]))
+        if source_format != "json":
+            raise ImportProblem("format must be json or html")
+        return payload.get("entries")
+
+    @app.post("/api/import/preview")
+    def preview_import() -> tuple[Response, int] | Response:
+        limited = enforce_write_rate_limit()
+        if limited is not None:
+            return limited, 429
+        payload = parse_json_object()
+        mode, title_source, description_source = import_options(payload)
+        raw = read_import_source(payload)
+        maximum = int(app.config["MAX_IMPORT_ENTRIES"])
+        if not isinstance(raw, list) or len(raw) > maximum:
+            raise ImportProblem(f"entries must be a list of at most {maximum} items")
+        entries: list[dict[str, Any]] = []
+        errors: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        invalid_count = 0
+        for index, item in enumerate(raw):
+            try:
+                normalized = normalize_import_entries([item], 1)[0]
+                if normalized["id"] in seen:
+                    raise ValidationError("duplicate imported ID")
+                seen.add(normalized["id"])
+                entries.append(normalized)
+            except ValidationError as exc:
+                invalid_count += 1
+                if len(errors) < 50:
+                    errors.append({"index": index, "error": str(exc)})
+        if invalid_count:
+            return jsonify({
+                "valid": False, "invalidCount": invalid_count, "errors": errors,
+                "mode": mode, "incomingEntries": [],
+            })
+        return jsonify(store.reviewed_import(
+            entries, mode=mode, title_source=title_source, description_source=description_source
+        ))
+
     @app.post("/api/import")
     def import_all() -> tuple[Response, int] | Response:
         limited = enforce_write_rate_limit()
         if limited is not None:
             return limited, 429
         payload = parse_json_object()
+        if "mode" in payload:
+            mode, title_source, description_source = import_options(payload)
+            entries = normalize_import_entries(
+                read_import_source(payload), int(app.config["MAX_IMPORT_ENTRIES"])
+            )
+            return jsonify(store.reviewed_import(
+                entries, mode=mode, title_source=title_source,
+                description_source=description_source, apply=True,
+                base_revision=payload.get("baseRevision"),
+            ))
+        # Compatibility: an existing API client without mode still requests replacement.
         entries = normalize_import_entries(
             payload.get("entries"), int(app.config["MAX_IMPORT_ENTRIES"])
         )
@@ -1300,6 +1431,8 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
 
     @app.get("/api/external/ddg")
     def ddg_proxy() -> tuple[Response, int] | Response:
+        if not app.config["EXTERNAL_REQUESTS_ALLOWED"]:
+            return json_error("external requests are disabled by the operator", 403)
         query = _require_text(
             request.args.get("q", ""),
             "q",
