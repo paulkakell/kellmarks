@@ -1,0 +1,31 @@
+title: "[Idea]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share and explore an idea before turning it into a concrete feature request.
+        Search existing discussions and issues first. Use synthetic examples without private data.
+  - type: textarea
+    id: opportunity
+    attributes:
+      label: What problem or opportunity do you see?
+      description: Describe the workflow and who would benefit.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: Describe how it might work. Sketches and alternative approaches are welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: tradeoffs
+    attributes:
+      label: Tradeoffs and open questions
+      description: Consider privacy, local-first operation, simplicity, accessibility, performance, and maintenance.
+  - type: textarea
+    id: related
+    attributes:
+      label: Related issues or discussions
+      description: Link existing conversations rather than duplicating them.

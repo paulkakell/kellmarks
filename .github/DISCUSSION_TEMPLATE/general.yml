@@ -1,0 +1,19 @@
+title: "[General]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Welcome to the Kellmarks community. Keep the conversation respectful and relevant.
+        Use Q&A for help, Ideas for proposals, and Issues for reproducible bugs or concrete tasks.
+        Never post secrets, private bookmark data, or vulnerability details.
+        Follow [SECURITY.md](https://github.com/paulkakell/kellmarks/blob/main/SECURITY.md) for security reports.
+  - type: textarea
+    id: topic
+    attributes:
+      label: What would you like to discuss?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context and related conversations

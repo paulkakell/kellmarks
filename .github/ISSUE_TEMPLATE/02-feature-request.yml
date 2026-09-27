@@ -1,0 +1,51 @@
+name: Feature request
+description: Propose a concrete improvement to Kellmarks.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for a concrete, actionable feature request.
+        Explore early ideas in [Discussions](https://github.com/paulkakell/kellmarks/discussions) first.
+        Keep examples free of private bookmarks, tokens, and other personal data.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to accomplish, who is affected, and what makes it difficult today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the desired behavior and how someone would use it.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Success criteria
+      description: List observable outcomes that would make this feature complete.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and workarounds
+      description: What have you tried? Include related issues or discussions when available.
+  - type: textarea
+    id: impact
+    attributes:
+      label: Privacy, compatibility, and deployment considerations
+      description: Consider local-first use, static demo limitations, accessibility, data migration, performance, and any new network dependency.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and discussions for this request.
+          required: true
+        - label: I removed secrets and private data from my examples.
+          required: true

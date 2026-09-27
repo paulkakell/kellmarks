@@ -1,0 +1,35 @@
+title: "[Q&A]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask how to install, configure, or use Kellmarks. Search existing discussions first.
+        When your question is resolved, mark the helpful reply as the answer.
+        For vulnerabilities, follow [SECURITY.md](https://github.com/paulkakell/kellmarks/blob/main/SECURITY.md).
+        Do not share tokens, private bookmarks, full data files, or unredacted logs.
+  - type: textarea
+    id: question
+    attributes:
+      label: What would you like help with?
+      description: Describe your goal and the behavior you are trying to understand.
+    validations:
+      required: true
+  - type: input
+    id: setup
+    attributes:
+      label: Version and setup
+      description: Include release or commit, OS, browser, and whether you use Flask or the static demo. Include Python version for Flask.
+    validations:
+      required: true
+  - type: textarea
+    id: attempts
+    attributes:
+      label: What have you tried?
+      description: Include documentation or related discussions you checked, or explain where you got stuck.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Optional redacted error messages, screenshots, or synthetic examples.

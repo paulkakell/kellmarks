@@ -2,6 +2,12 @@
 
 Changes should target the `dev` branch and use the repository release checklist.
 
+## Issues, discussions, and sponsorship
+
+Use the [issue forms](https://github.com/paulkakell/kellmarks/issues/new/choose) for bugs, concrete feature requests, and documentation improvements. Use [Discussions](https://github.com/paulkakell/kellmarks/discussions) for questions, early ideas, and sharing workflows. Follow [SECURITY.md](SECURITY.md) rather than posting vulnerabilities publicly. Never include private bookmarks or tokens in reports.
+
+See the [community guide](.github/COMMUNITY.md) for discussion categories, participation guidance, and sponsorship setup and verification.
+
 ## Required checks
 
 ```bash

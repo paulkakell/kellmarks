@@ -1,0 +1,44 @@
+name: Documentation improvement
+description: Report incorrect, missing, or unclear documentation.
+title: "[Docs]: "
+labels: [documentation]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Help make Kellmarks easier to install, use, and contribute to.
+        For personal setup questions, use [Discussions](https://github.com/paulkakell/kellmarks/discussions).
+        Follow [SECURITY.md](https://github.com/paulkakell/kellmarks/blob/main/SECURITY.md) for vulnerabilities; do not disclose them here.
+  - type: input
+    id: location
+    attributes:
+      label: Documentation location
+      description: Link to the page or provide a repository path and section heading.
+      placeholder: README.md, Local installation
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Documentation version or branch
+      placeholder: Release tag, main, or dev
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is incorrect, missing, or unclear?
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement
+      description: Provide corrected wording, a safe example, or the explanation you expected to find.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and removed secrets and private data.
+          required: true

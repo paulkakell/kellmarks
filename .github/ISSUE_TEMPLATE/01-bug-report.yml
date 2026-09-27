@@ -1,0 +1,93 @@
+name: Bug report
+description: Report a reproducible problem with Kellmarks.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Kellmarks. Search existing issues before submitting.
+        For usage questions, use [Discussions](https://github.com/paulkakell/kellmarks/discussions).
+        Do not report vulnerabilities here. Follow [SECURITY.md](https://github.com/paulkakell/kellmarks/blob/main/SECURITY.md).
+        Never attach tokens, private bookmarks, full data.json files, or unredacted logs.
+  - type: input
+    id: version
+    attributes:
+      label: Kellmarks version or commit
+      description: Use the VERSION file, release tag, or commit SHA. Include the branch when relevant.
+      placeholder: Release tag or commit SHA
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment mode
+      options:
+        - Local Flask server
+        - Flask behind an HTTPS reverse proxy or production WSGI server
+        - Static demo or GitHub Pages (no Flask API)
+        - Other or unsure
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS and version, browser and version, and Python version if using Flask. Do not include secrets or private hostnames.
+      placeholder: OS; browser; Python version or not applicable
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Bookmarks and dashboard
+        - Hierarchical tags
+        - Boolean search
+        - Import, export, or migration
+        - API or persistence
+        - Installation or configuration
+        - Static demo
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Give the smallest reproducible example. Use synthetic bookmarks and example.com URLs.
+      placeholder: |
+        1. Start Kellmarks in...
+        2. Add a sample bookmark...
+        3. Perform...
+        4. Observe...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the error message and frequency. Explain any data-loss impact without sharing private data.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Redacted logs, screenshots, or additional context
+      description: Optional. Remove authorization headers, tokens, private URLs, bookmark titles, and personal filesystem paths.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues for duplicates.
+          required: true
+        - label: This is not a vulnerability report, and I removed secrets and private data.
+          required: true

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions, help, and early ideas
+    url: https://github.com/paulkakell/kellmarks/discussions
+    about: Ask usage questions, get setup help, and discuss ideas with the community.
+  - name: Security vulnerability reporting
+    url: https://github.com/paulkakell/kellmarks/blob/main/SECURITY.md
+    about: Follow the security policy. Do not disclose vulnerabilities or secrets in public issues.
+  - name: Documentation and installation guide
+    url: https://github.com/paulkakell/kellmarks/blob/main/README.md
+    about: Read the installation instructions, security model, and project documentation.

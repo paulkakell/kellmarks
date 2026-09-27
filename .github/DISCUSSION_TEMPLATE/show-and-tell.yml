@@ -1,0 +1,23 @@
+title: "[Show and tell]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Show how you use Kellmarks, organize tags, or customize your workflow.
+        Replace real bookmarks with examples and redact tokens, private URLs, and personal information from screenshots.
+  - type: textarea
+    id: showcase
+    attributes:
+      label: What would you like to share?
+      description: Explain your setup, workflow, or customization and what makes it useful.
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Screenshots, examples, or instructions
+      description: Optional. Share only material you are comfortable making public.
+  - type: textarea
+    id: lessons
+    attributes:
+      label: Lessons learned or feedback wanted

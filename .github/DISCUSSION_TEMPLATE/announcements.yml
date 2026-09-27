@@ -1,0 +1,25 @@
+title: "[Announcement]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this category for maintainer announcements, releases, and important project updates.
+        Link published release notes instead of duplicating them. Follow SECURITY.md for private vulnerability handling.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Announcement
+      description: Explain what changed and who it affects.
+    validations:
+      required: true
+  - type: textarea
+    id: action
+    attributes:
+      label: Action needed
+      description: Describe upgrade or migration steps, or state that no action is required. Do not include secrets.
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: Release notes, documentation, or related links
