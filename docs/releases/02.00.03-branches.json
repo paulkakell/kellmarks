@@ -1,0 +1,32 @@
+{
+  "version": "02.00.03",
+  "rollback": "816931588597236626563e32a8199a090fbe7a2a",
+  "dev_baseline": "313efe008e27a7cba4f3e6e01944283c926d0ac3",
+  "sources": [
+    {
+      "pull_request": 2,
+      "branch": "dependabot/github_actions/dev/actions/checkout-7.0.1",
+      "sha": "a54d551201b7b9df6e59cdede2dfac2bda48e742"
+    },
+    {
+      "pull_request": 3,
+      "branch": "dependabot/github_actions/dev/actions/setup-python-7.0.0",
+      "sha": "8e100e5f8da0638262bd7631aa9bca273c751d46"
+    },
+    {
+      "pull_request": 4,
+      "branch": "dependabot/github_actions/dev/github/codeql-action/autobuild-4.37.8",
+      "sha": "1ad30c4720589fd1101f799a2160498fa7390187"
+    },
+    {
+      "pull_request": 5,
+      "branch": "dependabot/github_actions/dev/github/codeql-action/init-4.37.8",
+      "sha": "5de31aa55495872299965820595c2388c3b882e1"
+    },
+    {
+      "pull_request": 6,
+      "branch": "dependabot/github_actions/dev/github/codeql-action/analyze-4.37.8",
+      "sha": "aac043927b3c6324b0d22e0101609e49498d47f8"
+    }
+  ]
+}

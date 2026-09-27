@@ -2,6 +2,22 @@
 
 All notable changes are recorded here. Kellmarks versions use `Release.Feature.BugFix` in fixed-width `xx.xx.xx` form.
 
+## [02.00.03] - 2026-09-27
+
+### Fixed
+
+- Integrate the five outstanding workflow updates from PRs #2, #3, #4, #5, and #6 without discarding their commit ancestry.
+- Update pinned actions/checkout to 7.0.1 and actions/setup-python to 7.0.0.
+- Update CodeQL init, autobuild, and analyze together to 4.37.8. Separate updates failed with a configuration-version mismatch.
+- Group future CodeQL Dependabot updates and reject mixed CodeQL revisions in release validation and regression tests.
+- Align release metadata, badges, API documentation, and supported-version documentation with 02.00.03.
+
+### Maintenance and compatibility
+
+- Preserve main and the documented dev integration branch. Remove only incorporated, unchanged short-lived branches after release checks succeed.
+- No application API, configuration-default, runtime dependency, data-schema, or migration behavior changes. Classification: fix, with additive validation and documentation.
+- Rollback baseline: 816931588597236626563e32a8199a090fbe7a2a. Source commit ledger and rollback instructions are in docs/releases/02.00.03.md.
+
 ## [02.00.02] - 2026-08-13
 
 ### Fixed
