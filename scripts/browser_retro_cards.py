@@ -24,7 +24,9 @@ def settle(page: Any) -> None:
 
 def opened_page(context: Any, page: Any, action: Any, target: str) -> None:
     """Check a real browser navigation, not a mocked window.open call."""
-    with page.expect_popup() as opened:
+    # Native middle/modifier clicks can create background tabs without an
+    # opener relationship. Observe all pages while still asserting real navigation.
+    with context.expect_page() as opened:
         action()
     popup = opened.value
     expect(popup).to_have_url(target)

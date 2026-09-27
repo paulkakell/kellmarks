@@ -81,7 +81,9 @@ def main() -> None:
     completed: list[str] = []
     with sync_playwright() as playwright:
         executable = os.getenv("KELLMARKS_BROWSER_EXECUTABLE")
-        options = {"executable_path": executable} if executable else {}
+        # Use full Chromium's headless mode for native background-tab gestures.
+        # The install command already provides this browser alongside headless shell.
+        options = {"executable_path": executable} if executable else {"channel": "chromium"}
         browser = playwright.chromium.launch(headless=True, **options)
         try:
             with server() as base:
