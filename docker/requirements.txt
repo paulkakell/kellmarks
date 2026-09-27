@@ -1,0 +1,4 @@
+# Production WSGI dependencies; the local Python installation stays unchanged.
+-r ../docs/server/requirements.lock
+gunicorn==26.2.0
+packaging==26.3

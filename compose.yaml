@@ -1,0 +1,47 @@
+name: kellmarks
+
+services:
+  kellmarks:
+    image: "${KELLMARKS_IMAGE:-kellmarks:local}"
+    build:
+      context: .
+    restart: unless-stopped
+    init: true
+    ports:
+      # Loopback only. Use the HTTPS overlay for remote access.
+      - "127.0.0.1:${KELLMARKS_HTTP_PORT:-8787}:8787"
+    environment:
+      KELLMARKS_AUTH_TOKEN: "${KELLMARKS_AUTH_TOKEN:?Generate a token as described in docs/INSTALLATION.md}"
+      KELLMARKS_REQUIRE_AUTH: "1"
+      KELLMARKS_DATA_FILE: /data/data.json
+      KELLMARKS_TRUSTED_HOSTS: "${KELLMARKS_TRUSTED_HOSTS:-localhost,127.0.0.1,[::1]}"
+      KELLMARKS_PUBLIC_ORIGIN: "${KELLMARKS_PUBLIC_ORIGIN:-}"
+      KELLMARKS_ALLOWED_ORIGINS: "${KELLMARKS_ALLOWED_ORIGINS:-}"
+      KELLMARKS_ENABLE_HSTS: "${KELLMARKS_ENABLE_HSTS:-0}"
+      KELLMARKS_EXTERNAL_REQUESTS: "${KELLMARKS_EXTERNAL_REQUESTS:-1}"
+      KELLMARKS_LOG_LEVEL: "${KELLMARKS_LOG_LEVEL:-INFO}"
+      KELLMARKS_MAX_REQUEST_BYTES: "${KELLMARKS_MAX_REQUEST_BYTES:-1048576}"
+      KELLMARKS_MAX_DATA_BYTES: "${KELLMARKS_MAX_DATA_BYTES:-16777216}"
+      KELLMARKS_MAX_ENTRIES: "${KELLMARKS_MAX_ENTRIES:-10000}"
+      KELLMARKS_MAX_IMPORT_ENTRIES: "${KELLMARKS_MAX_IMPORT_ENTRIES:-5000}"
+      KELLMARKS_WRITE_RATE_LIMIT: "${KELLMARKS_WRITE_RATE_LIMIT:-120}"
+      KELLMARKS_DDG_RATE_LIMIT: "${KELLMARKS_DDG_RATE_LIMIT:-30}"
+      KELLMARKS_AUTH_RATE_LIMIT: "${KELLMARKS_AUTH_RATE_LIMIT:-20}"
+    volumes:
+      - data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    stop_grace_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  data:

@@ -1,0 +1,37 @@
+name: Docker deployment
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docker:
+    name: Build and exercise full-server Docker deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Audit production server dependencies
+        run: |
+          python -m pip install -r requirements-dev.txt -r docker/requirements.txt
+          python -m pip check
+          pip-audit --no-deps -r docker/requirements.txt
+          bandit -r docker -ll
+      - name: Build the production image
+        run: docker build --pull -t kellmarks:ci .
+      - name: Validate HTTPS proxy configuration without requesting a certificate
+        run: |
+          docker run --rm -e KELLMARKS_DOMAIN=bookmarks.example.com \
+            -v "$PWD/docker/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+      - name: Test authentication, isolation, health, persistence, backup and restore
+        run: python scripts/docker_smoke.py

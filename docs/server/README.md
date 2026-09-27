@@ -6,7 +6,21 @@
 
 The Flask server serves an explicit frontend allowlist and a protected JSON API. Runtime data is private and is not served by Flask.
 
-## Install
+## Installation options
+
+For a complete production server, use the
+[Docker Compose installation](../INSTALLATION.md#docker-compose-full-server).
+It includes the dashboard, this API, Gunicorn, a private persistent volume,
+authenticated health checks and non-root execution. The optional
+[HTTPS/Caddy deployment](../INSTALLATION.md#https-full-server-with-caddy) adds TLS.
+The [full installation guide](../INSTALLATION.md) also covers standalone Docker,
+Windows, configuration, backups/restores, migration, upgrades and troubleshooting.
+
+The commands below are the local Python/development alternative. Docker's fixed
+container listener/data path and mandatory authentication are documented in the
+[Docker configuration section](../INSTALLATION.md#configuration-and-storage).
+
+## Install locally
 
 From the repository root:
 
@@ -54,20 +68,14 @@ export KELLMARKS_REQUIRE_AUTH=1
 python docs/server/app.py
 ```
 
-## HTTPS reverse-proxy example
+## HTTPS reverse-proxy deployment
 
-```bash
-export KELLMARKS_AUTH_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
-export KELLMARKS_REQUIRE_AUTH=1
-export KELLMARKS_TRUSTED_HOSTS=bookmarks.example.com
-export KELLMARKS_PUBLIC_ORIGIN=https://bookmarks.example.com
-export KELLMARKS_ENABLE_HSTS=1
-python docs/server/app.py
-```
-
-The built-in Flask server refuses non-loopback binding. Configure a maintained HTTPS reverse proxy to preserve `Host` and forward to `http://127.0.0.1:8787`. Remove client-supplied forwarding headers before adding proxy-owned values. Kellmarks treats any `Forwarded` or `X-Forwarded-*` header as an authentication boundary and does not trust those headers for client identity.
-
-A production WSGI process may bind within an isolated private network or container. Do not expose plaintext bearer-token traffic to an untrusted network.
+Use the [production Docker HTTPS instructions](../INSTALLATION.md#https-full-server-with-caddy)
+or [existing-proxy configuration](../INSTALLATION.md#using-an-existing-reverse-proxy).
+The built-in Flask server is for local development, not production. Network
+traffic must be protected by HTTPS (or a secure tunnel); the proxy must preserve
+Host and remove client-supplied forwarding headers. Authentication is enforced
+regardless of proxy headers. The application never trusts them for client identity.
 
 ## Cross-origin frontend
 

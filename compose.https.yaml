@@ -1,0 +1,32 @@
+# Use together with compose.yaml, not as a standalone file.
+services:
+  kellmarks:
+    environment:
+      KELLMARKS_TRUSTED_HOSTS: "${KELLMARKS_DOMAIN:?Set KELLMARKS_DOMAIN in .env},localhost,127.0.0.1"
+      KELLMARKS_PUBLIC_ORIGIN: "https://${KELLMARKS_DOMAIN:?Set KELLMARKS_DOMAIN in .env}"
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      KELLMARKS_DOMAIN: "${KELLMARKS_DOMAIN:?Set KELLMARKS_DOMAIN in .env}"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      kellmarks:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -13,3 +13,7 @@ venv/
 !.env.example
 docs/server/instance/
 *.tmp
+
+# Private deployment files and operator backups
+!.env.docker.example
+backups/

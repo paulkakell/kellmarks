@@ -1,0 +1,10 @@
+# Set a real DNS hostname in .env. No access log: it could expose bookmark queries.
+{$KELLMARKS_DOMAIN} {
+    reverse_proxy kellmarks:8787 {
+        # Preserve Host; discard client forwarding identity rather than trust it.
+        header_up -Forwarded
+        header_up -X-Forwarded-For
+        header_up -X-Forwarded-Host
+        header_up X-Forwarded-Proto https
+    }
+}
