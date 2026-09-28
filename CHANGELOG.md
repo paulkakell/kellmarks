@@ -2,6 +2,25 @@
 
 All notable changes are recorded here. Kellmarks versions use `Release.Feature.BugFix` in fixed-width `xx.xx.xx` form.
 
+## [02.02.00] - 2026-09-27
+
+### Added
+- Pull-only `docker-compose.yml` for version-pinned GHCR installation without a source checkout or local build; AMD64 and ARM64 full-server images.
+- Release-gated GHCR publishing, OCI identity labels, provenance/SBOM metadata, digest-tested promotion, version/commit tags and an optional stable `latest` alias.
+- Downloadable installation bundle, individual Compose/configuration files, digest metadata and checksums; no private runtime files included.
+- Complete GHCR guide covering Linux/macOS/PowerShell, credentials, package visibility, HTTPS, configuration, upgrades, backup/restore and rollback.
+- Configuration-parity, standalone Compose, registry-safety, artifact-safety and multi-architecture deployment regressions.
+
+### Fixed
+- Require Docker deployment checks alongside existing exact-commit release gates, and restrict publication to trusted main push events or an explicit main dispatch.
+- Avoid source/registry Compose filename ambiguity by using explicit `-f docker-compose.yml` commands.
+- Reject conflicting image revisions rather than overwriting an existing version; distinguish missing manifests from registry authorization/network failures.
+
+### Compatibility and traceability
+- Additive feature release: 02.01.02 to 02.02.00. Data schema 2, APIs, runtime Python pins, authentication, bookmark contents and existing image overrides remain compatible. No database migration.
+- Preserve the source-build option with a versioned local image default and the same project/data-volume names. Prior full-server Docker work from #13 is included in this release.
+- Base commit: `7ac1982219fe023de308b4ad4171c47b7a0f33c9`; prior published release: `v02.01.02` at `0beb09de3b8faff4b6f1658103059198815ae1ad`. Release notes include rollback and copyable commit notes. Exact new commit and validation run identifiers are recorded in the implementing PR.
+
 ## [02.01.02] - 2026-09-27
 
 ### Added

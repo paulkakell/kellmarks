@@ -1,10 +1,11 @@
+# Prebuilt GHCR installation; no source tree or local build required.
+# Use: docker compose -f docker-compose.yml up -d --wait
 name: kellmarks
 
 services:
   kellmarks:
-    image: "${KELLMARKS_IMAGE:-kellmarks:02.02.00}"
-    build:
-      context: .
+    image: "${KELLMARKS_IMAGE:-ghcr.io/paulkakell/kellmarks:02.02.00}"
+    pull_policy: missing
     restart: unless-stopped
     init: true
     ports:

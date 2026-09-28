@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kellmarks API
-  version: "02.01.02"
+  version: "02.02.00"
   description: >-
     Protected local-first bookmark API. Loopback access may be unauthenticated only
     when the server has no configured token and the request does not traverse a proxy.
@@ -294,8 +294,8 @@ components:
       type: object
       required: [currentVersion, latestVersion, status, releaseUrl, checkedAt]
       properties:
-        currentVersion: { type: string, example: "02.01.02" }
-        latestVersion: { type: string, nullable: true, example: "02.01.02" }
+        currentVersion: { type: string, example: "02.02.00" }
+        latestVersion: { type: string, nullable: true, example: "02.02.00" }
         status:
           type: string
           enum: [current, update_available, ahead, unavailable, no_release, disabled]
@@ -370,7 +370,7 @@ components:
       required: [ok, version, dataSchemaVersion, externalRequestsAllowed, time]
       properties:
         ok: { type: boolean }
-        version: { type: string, example: "02.01.02" }
+        version: { type: string, example: "02.02.00" }
         dataSchemaVersion: { type: integer, example: 2 }
         externalRequestsAllowed: { type: boolean, example: true }
         time: { type: string, format: date-time }

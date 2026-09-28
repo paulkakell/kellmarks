@@ -1,6 +1,15 @@
 # syntax=docker/dockerfile:1
 FROM python:3.13-slim-bookworm
 
+ARG KELLMARKS_VERSION=02.02.00
+ARG VCS_REF=unknown
+LABEL org.opencontainers.image.title="Kellmarks" \
+      org.opencontainers.image.description="Authenticated bookmark dashboard and persistent API" \
+      org.opencontainers.image.source="https://github.com/paulkakell/kellmarks" \
+      org.opencontainers.image.licenses="Unlicense" \
+      org.opencontainers.image.version="${KELLMARKS_VERSION}" \
+      org.opencontainers.image.revision="${VCS_REF}"
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -26,6 +35,7 @@ COPY docs/assets/app.js docs/assets/app.css docs/assets/enhancements.js \
      docs/assets/logo.svg docs/assets/sample-data.json docs/assets/site-tags.json /app/docs/assets/
 COPY docker/gunicorn.conf.py docker/healthcheck.py /app/docker/
 COPY VERSION LICENSE /app/
+RUN test "$(cat /app/VERSION)" = "$KELLMARKS_VERSION"
 
 USER 10001:10001
 WORKDIR /app/docs/server
