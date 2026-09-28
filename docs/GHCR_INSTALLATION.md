@@ -1,6 +1,6 @@
 # Install Kellmarks from GHCR
 
-The prebuilt image `ghcr.io/paulkakell/kellmarks:02.02.00` runs the full dashboard,
+The prebuilt image `ghcr.io/paulkakell/kellmarks:02.03.00` runs the full dashboard,
 authenticated Flask API and Gunicorn server. It supports Linux **AMD64 and ARM64**,
 including Linux containers on Docker Desktop. No Git checkout, host Python,
 Node.js or local image build is required. Bookmark data stays in a private named
@@ -27,8 +27,8 @@ Start in a new private directory. Linux/macOS:
 
 ```bash
 mkdir kellmarks && cd kellmarks
-curl --fail --location --remote-name https://github.com/paulkakell/kellmarks/releases/download/v02.02.00/docker-compose.yml
-curl --fail --location --remote-name https://github.com/paulkakell/kellmarks/releases/download/v02.02.00/.env.docker.example
+curl --fail --location --remote-name https://github.com/paulkakell/kellmarks/releases/download/v02.03.00/docker-compose.yml
+curl --fail --location --output .env.docker.example https://github.com/paulkakell/kellmarks/releases/download/v02.03.00/env.docker.example
 ```
 
 Windows PowerShell:
@@ -36,16 +36,26 @@ Windows PowerShell:
 ```powershell
 New-Item -ItemType Directory kellmarks -ErrorAction Stop
 Set-Location kellmarks
-Invoke-WebRequest 'https://github.com/paulkakell/kellmarks/releases/download/v02.02.00/docker-compose.yml' -OutFile docker-compose.yml
-Invoke-WebRequest 'https://github.com/paulkakell/kellmarks/releases/download/v02.02.00/.env.docker.example' -OutFile .env.docker.example
+Invoke-WebRequest 'https://github.com/paulkakell/kellmarks/releases/download/v02.03.00/docker-compose.yml' -OutFile docker-compose.yml
+Invoke-WebRequest 'https://github.com/paulkakell/kellmarks/releases/download/v02.03.00/env.docker.example' -OutFile .env.docker.example
 ```
 
-The release also supplies `kellmarks-02.02.00-docker.tar.gz` containing both Compose
+The release also supplies `kellmarks-02.03.00-docker.tar.gz` containing both Compose
 options for GHCR/HTTPS, the Caddyfile, environment example, installation guides
 and `container.json`. It contains no credentials or bookmark data. `SHA256SUMS`
 covers the downloadable assets; compare hashes of the files you downloaded
 against this file. `container.json` records the source commit, image digest,
 platforms and whether anonymous registry access was verified at publication.
+
+The standalone environment asset is named `env.docker.example` to avoid GitHub's
+renaming of leading-dot filenames. The commands above save it locally as
+`.env.docker.example`, matching the source checkout and the tar bundle. When
+checking `SHA256SUMS`, compare the local environment example against the
+`env.docker.example` checksum entry. Do not rename your private `.env`.
+
+Release 02.02.00 remains available for rollback. Its standalone environment
+asset was renamed by GitHub to `default.env.docker.example`; the tar bundle
+retains `.env.docker.example`. The filename correction first shipped in 02.02.01; use the current installation files above.
 
 In a source checkout, these same files are already present. **Always use
 `-f docker-compose.yml` for the prebuilt installation.** Docker prefers
@@ -64,10 +74,10 @@ Linux/macOS, first installation only:
     echo '.env already exists; preserve the existing configuration.' >&2
     exit 1
   fi
-  docker pull ghcr.io/paulkakell/kellmarks:02.02.00
+  docker pull ghcr.io/paulkakell/kellmarks:02.03.00
   umask 077
   cp .env.docker.example .env
-  docker run --rm --entrypoint python ghcr.io/paulkakell/kellmarks:02.02.00 \
+  docker run --rm --entrypoint python ghcr.io/paulkakell/kellmarks:02.03.00 \
     -c "import secrets; print('KELLMARKS_AUTH_TOKEN=' + secrets.token_urlsafe(32))" >> .env
 )
 ```
@@ -76,10 +86,10 @@ Windows PowerShell:
 
 ```powershell
 if (Test-Path .env) { throw '.env already exists; preserve the existing configuration.' }
-docker pull ghcr.io/paulkakell/kellmarks:02.02.00
+docker pull ghcr.io/paulkakell/kellmarks:02.03.00
 if ($LASTEXITCODE -ne 0) { throw 'Image pull failed; check registry access below.' }
 Copy-Item .env.docker.example .env
-$token = docker run --rm --entrypoint python ghcr.io/paulkakell/kellmarks:02.02.00 -c "import secrets; print(secrets.token_urlsafe(32))"
+$token = docker run --rm --entrypoint python ghcr.io/paulkakell/kellmarks:02.03.00 -c "import secrets; print(secrets.token_urlsafe(32))"
 if ($LASTEXITCODE -ne 0) { throw 'Token generation failed.' }
 Add-Content -Path .env -Value "KELLMARKS_AUTH_TOKEN=$token" -Encoding ascii
 Remove-Variable token
@@ -109,7 +119,7 @@ standard input. GitHub organization SSO authorization may also be required:
 # Set GHCR_READ_TOKEN privately using your secret manager, not a literal in shell history.
 printf '%s' "$GHCR_READ_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
 unset GHCR_READ_TOKEN
-docker pull ghcr.io/paulkakell/kellmarks:02.02.00
+docker pull ghcr.io/paulkakell/kellmarks:02.03.00
 ```
 
 Use Docker's credential helper and `docker logout ghcr.io` when credentials are
@@ -184,7 +194,7 @@ or set `KELLMARKS_IMAGE` to a complete image reference:
 
 ```dotenv
 # Explicit release version, recommended:
-KELLMARKS_IMAGE=ghcr.io/paulkakell/kellmarks:02.02.00
+KELLMARKS_IMAGE=ghcr.io/paulkakell/kellmarks:02.03.00
 ```
 
 For immutable deployment, use `ghcr.io/paulkakell/kellmarks@sha256:...` with the
@@ -219,7 +229,7 @@ docker compose -f docker-compose.yml exec -T kellmarks python /app/docker/health
 Confirm the dashboard version and your bookmarks. To roll back, restore the
 previous deployment files and set `KELLMARKS_IMAGE` to the recorded prior digest,
 then run `up -d --no-build --force-recreate --wait` with the same file arguments.
-Release 02.02.00 retains schema 2, so no database migration or data rewrite is
+Release 02.03.00 retains schema 2, so no database migration or data rewrite is
 needed. This is the first GHCR release: do not invent a `02.01.02` registry tag.
 For a pre-GHCR rollback, use the retained local image or previous Python source.
 Future schema changes require the corresponding release's rollback instructions.

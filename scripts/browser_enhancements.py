@@ -116,7 +116,7 @@ def run_feature_scenarios(browser: Any, server: Any) -> list[str]:
         completed.append("all 22 presets, custom colors, persistence, cancel, contrast warning and gold/black reset")
 
         for state, latest, message in [
-            ("update_available", "02.02.00", "Update available: v02.02.00"),
+            ("update_available", "02.02.01", "Update available: v02.02.01"),
             ("ahead", "02.01.00", "Development build"),
             ("no_release", None, "No published stable release"),
             ("unavailable", None, "Update check unavailable"),

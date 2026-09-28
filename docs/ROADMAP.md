@@ -1,13 +1,13 @@
 # KellMarks project roadmap
 
-Roadmap revision: **01.00.00**  
+Roadmap revision: **01.01.00**
 Approved scope: **2026-09-27**  
 Baseline: **02.00.03**, application commit `de40dfa9ebecb6aa48d92c94d9e3b6e13cf40e01`, with community configuration at `b65cd0d71d201a90bc0df7ac1845a0745022cfcf`.  
 Tracking issue: [#9](https://github.com/paulkakell/kellmarks/issues/9).
 
 ## Goal and boundaries
 
-Make KellMarks a private bookmark library that is easy to save into, organize, search and recover. Retain the small Flask service, plain JavaScript dashboard, hierarchical tags, Boolean search and private atomic persistence. Every accepted recommendation is recorded below. A planned item is not an implemented feature. Release numbers below are targets until implementation and validation are complete; they are not promised dates or published tags.
+Make KellMarks a private bookmark library that is easy to save into, organize, search and recover. Retain the small Flask service, plain JavaScript dashboard, hierarchical tags, Boolean search and private atomic persistence. Every accepted recommendation is recorded below. A planned item is not an implemented feature. Historical release numbers below identify delivered work; remaining milestones have no assigned release number; they are not promised dates or published tags.
 
 Multi-user collaboration, public sharing and mandatory AI are not part of this program. They require a separate product decision and security design. Existing local operation must remain useful without a browser extension, an AI model, external search, content preservation or an account with another service.
 
@@ -15,17 +15,17 @@ Multi-user collaboration, public sharing and mandatory AI are not part of this p
 
 | ID | Feature | Required scope | Delivery |
 | --- | --- | --- | --- |
-| KM-R01 | Safe imports and duplicates | Merge-default dashboard import; explicit replacement; JSON and browser bookmark HTML; folder-to-tag mapping; preview new, duplicate, changed and invalid entries; conservative URL comparison; retained originals; deliberate title/description choices and combined tags | 02.01.00 foundation; refinement in 02.02.00 |
-| KM-R02 | One-click capture | Authenticated quick-add page and bookmarklet first; browser extension; title and URL capture; optional selected text; existing-tag suggestions; already-saved feedback; Inbox destination | 02.03.00 |
-| KM-R03 | Bulk library management | Multi-select; bulk tag addition/removal; tag rename, merge and move; optional descendant changes; previews; atomic operations; undo; later keyboard-accessible drag-and-drop | 02.02.00 |
-| KM-R04 | Smart retrieval | Saved Boolean query, tag scope and sort order; dynamically evaluated collections; title/recently-added/recently-updated sorting; favorites; pinned collections; later domain, tag and date filters | Sorting foundation in 02.01.00; full delivery in 02.04.00 |
-| KM-R05 | Recovery | Trash; configurable retention; immediate undo; recovery of bulk changes; accessible backup inventory and restore preview; per-bookmark history | 02.02.00; history expansion in 02.04.00 |
-| KM-R06 | Explicit privacy controls | Library-only search by default; separate web-search action; visible external disclosure; remote-icon control; operator no-external-requests mode; policies for metadata, link checks, preservation and AI | 02.01.00, extended with each integration |
-| KM-R07 | Reading workflow | Inbox; unread/read; favorites; archive; optional review queue; clear separation between archive and Trash | 02.03.00 |
-| KM-R08 | Notes and highlights | Longer notes; selected-text excerpts; source URL; capture timestamp; provenance; safe display; export and retrieval; revision recovery | 02.04.00 |
-| KM-R09 | Link health and preservation | Manual and scheduled bounded checks; last-checked time; status taxonomy; redirect review; optional readable-text copies; later richer snapshots only when justified | 02.05.00 |
-| KM-R10 | Mobile and offline | Mobile-friendly capture; installable application; explicit offline opt-in; persistent outbox; duplicate-resistant replay; conflict review; private cache lifecycle | 02.06.00 |
-| KM-R11 | Optional local AI | Suggested tags, summaries, related bookmarks and semantic search; local processing first; explicit approval before edits; transparent model/index lifecycle; no AI requirement | 02.07.00 |
+| KM-R01 | Safe imports and duplicates | Merge-default dashboard import; explicit replacement; JSON and browser bookmark HTML; folder-to-tag mapping; preview new, duplicate, changed and invalid entries; conservative URL comparison; retained originals; deliberate title/description choices and combined tags | 02.01.00 foundation; remaining work planned |
+| KM-R02 | One-click capture | Authenticated quick-add page and bookmarklet first; browser extension; title and URL capture; optional selected text; existing-tag suggestions; already-saved feedback; Inbox destination | Planned; version unassigned |
+| KM-R03 | Bulk library management | Multi-select; bulk tag addition/removal; tag rename, merge and move; optional descendant changes; previews; atomic operations; undo; later keyboard-accessible drag-and-drop | Planned; version unassigned |
+| KM-R04 | Smart retrieval | Saved Boolean query, tag scope and sort order; dynamically evaluated collections; title/recently-added/recently-updated sorting; favorites; pinned collections; later domain, tag and date filters | 02.01.00 foundation; remaining work planned |
+| KM-R05 | Recovery | Trash; configurable retention; immediate undo; recovery of bulk changes; accessible backup inventory and restore preview; per-bookmark history | Planned; version unassigned |
+| KM-R06 | Explicit privacy controls | Library-only search by default; separate web-search action; visible external disclosure; remote-icon control; operator no-external-requests mode; policies for metadata, link checks, preservation and AI | Implemented controls |
+| KM-R07 | Reading workflow | Inbox; unread/read; favorites; archive; optional review queue; clear separation between archive and Trash | Planned; version unassigned |
+| KM-R08 | Notes and highlights | Longer notes; selected-text excerpts; source URL; capture timestamp; provenance; safe display; export and retrieval; revision recovery | Planned; version unassigned |
+| KM-R09 | Link health and preservation | Manual and scheduled bounded checks; last-checked time; status taxonomy; redirect review; optional readable-text copies; later richer snapshots only when justified | Planned; version unassigned |
+| KM-R10 | Mobile and offline | Mobile-friendly capture; installable application; explicit offline opt-in; persistent outbox; duplicate-resistant replay; conflict review; private cache lifecycle | Planned; version unassigned |
+| KM-R11 | Optional local AI | Suggested tags, summaries, related bookmarks and semantic search; local processing first; explicit approval before edits; transparent model/index lifecycle; no AI requirement | Planned; version unassigned |
 
 ## Release sequence and acceptance criteria
 
@@ -41,7 +41,7 @@ Examples: import another browser without deleting the current collection; previe
 
 Acceptance: malformed imports make zero changes; cancel makes zero changes; stale previews return a conflict; a failed backup/write leaves the live store recoverable; existing API clients and schema-2 exports still work; local typing and dashboard rendering cause no unrequested external lookup; operator denial overrides browser preferences. Unit, API and browser-interaction tests must cover these properties.
 
-### 02.02.00: bulk organization and recovery
+### Planned: bulk organization and recovery
 
 Dependencies: 02.01.00 validation, conflict detection and import preview conventions.
 
@@ -55,7 +55,7 @@ Examples: move an entire tag hierarchy; recover yesterday's accidental deletion 
 
 Acceptance: multi-process writes remain serialized; all-or-nothing bulk mutations; Trash survives restart; retention boundary tests; backup corruption is rejected; restore is rehearsed against a disposable copy; no permanent deletion before its configured policy allows it. Drag-and-drop follows only after the same operations work by keyboard with visible previews.
 
-### 02.03.00: capture and reading
+### Planned: capture and reading
 
 Dependencies: duplicate review and recovery.
 
@@ -69,7 +69,7 @@ Examples: save an AWS article directly to `cloud/aws/security`; collect uncatego
 
 Acceptance: Chrome/Firefox compatibility matrix and installation instructions; no tokens in URLs, page DOM or logs; no passive capture; hostile page metadata displayed as text; retry never creates an unintended second bookmark; keyboard and mobile quick-add tests.
 
-### 02.04.00: smart retrieval and research context
+### Planned: smart retrieval and research context
 
 Dependencies: reading fields and the recovery model.
 
@@ -81,7 +81,7 @@ Examples: save an AWS security collection using scope `cloud/aws` and query `iam
 
 Acceptance: collection results update after CRUD/import; browser/server query parity fixtures; old Boolean queries remain unchanged; notes/highlights cannot execute scripts; export/import round-trips; revision restore preserves unrelated changes; a 10,000-entry retrieval benchmark with recorded environment and baseline.
 
-### 02.05.00: link health and optional preservation
+### Planned: link health and optional preservation
 
 Dependencies: central privacy policy, recoverable records and a reviewed outbound-request architecture.
 
@@ -95,7 +95,7 @@ Examples: review a moved documentation page; see that another page requires logi
 
 Acceptance: SSRF regression corpus; simulated DNS changes and redirect chains; denied destinations never reached; global external denial cancels future work; job restart/retry idempotency; no sensitive URLs or text in logs; quota and retention tests; measured CPU, memory, storage and request budgets.
 
-### 02.06.00: mobile and deliberate offline support
+### Planned: mobile and deliberate offline support
 
 Dependencies: stable capture, conflict detection and recovery.
 
@@ -107,7 +107,7 @@ Examples: save a reference while disconnected, see it pending, reconnect and con
 
 Acceptance: supported-browser install/offline matrix; interrupted writes and replay; duplicate suppression; expired-auth behavior; cross-instance isolation; cache removal; accessibility checks; offline import/export recovery; no claim of encrypted-at-rest storage without implementing and reviewing key management.
 
-### 02.07.00: optional local AI assistance
+### Planned: optional local AI assistance
 
 Dependencies: notes, retrieval, privacy policy and deletion/export lifecycle.
 
@@ -152,7 +152,11 @@ Every implementation release must complete these gates, with actual output rathe
 | 02.00.03 baseline | Existing application baseline | `de40dfa9ebecb6aa48d92c94d9e3b6e13cf40e01` |
 | Roadmap 01.00.00 | Accepted scope recorded | #9; preparation commit `c3355bf6c4079c408f2cee5d7d116f1da0b3bfad` |
 | 02.01.00 | Import/privacy/sorting foundation implemented; release gates apply | PR #10; [release notes](releases/02.01.00.md) and [user guide](USER_GUIDE.md) |
-| 02.02.00 through 02.07.00 | Planned | Acceptance criteria above; no implementation claim |
+| 02.01.01 / 02.01.02 | Dashboard defaults, themes, version status and card navigation | [02.01.01](releases/02.01.01.md), [02.01.02](releases/02.01.02.md) |
+| 02.02.00 | Docker/GHCR deployment, not bulk organization | PR #14, #16; [release notes](releases/02.02.00.md) |
+| 02.02.01 | Release-download correction merged | PR #17; main `66a4c2a143bb7c6eaaaa67c7fddbec51a4919ada`; publication has separate exact-commit gates |
+| 02.03.00 | Settings and opt-in blank-description implementation | PR #15; [release notes](releases/02.03.00.md); not the capture/reading milestone |
+| Remaining accepted milestones | Planned; release numbers unassigned | Acceptance criteria above; no completion claim |
 
 ## References
 
@@ -162,3 +166,13 @@ Security design references, consulted 2026-09-27: [OWASP SSRF prevention](https:
 ## Dashboard follow-up — 02.01.01
 
 The September 27, 2026 follow-up implements four separately requested dashboard changes: consent-controlled site favicon fallback, local creation-only site tags, 20 theme presets/custom colors with gold/black as default, and cached release status in the footer. These changes do not imply completion of local AI (KM-R11), bulk editing, capture or any other remaining milestone above. The tag suggestions are deterministic local rules and reuse, not an AI implementation. See `releases/02.01.01.md` for behavior, privacy limits and rollback.
+
+## September 27 integration status
+
+The originally proposed 02.02.00–02.07.00 milestone numbers were planning targets,
+not reserved release tags. Intervening Docker/GHCR and Settings/description work
+uses 02.02.00–02.03.00. The remaining milestone sequence and acceptance criteria
+are retained without conflicting version promises. Issue #9 stays open until
+that work is implemented and validated. Session-only description metadata is a
+limited addition, not a browser extension, notes/highlights system, link-health
+scanner, readable-text preservation service or AI summarizer.

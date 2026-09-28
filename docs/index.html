@@ -39,6 +39,8 @@
             <h2>Privacy and browser data</h2>
             <label class="checkbox-label"><input id="remoteIcons" type="checkbox" disabled> Allow remote icons for this session (contacts their websites)</label>
             <p class="help">Remote icons reset to off on reload and remain unavailable when the server disallows external requests.</p>
+            <label class="checkbox-label"><input id="autoDescriptions" type="checkbox" disabled> Fill missing descriptions from linked sites for this session</label>
+            <p class="help">On new saves only, contacts the linked public website from your server. Sends no API token or cookies. Resets to off on reload; unavailable in browser-only mode or when external requests are disabled.</p>
             <button class="btn secondary" id="clearMemoryBtn" type="button">Clear browser memory…</button>
             <input type="file" id="filePick" accept="application/json,text/html,.json,.html,.htm" hidden>
           </section>
@@ -102,7 +104,7 @@
       </div>
     </main>
     <footer class="app-footer" aria-label="Application version and updates">
-      <span id="versionCurrent" aria-label="Kellmarks version 02.02.00">Kellmarks v02.02.00</span>
+      <span id="versionCurrent" aria-label="Kellmarks version 02.03.00">Kellmarks v02.03.00</span>
       <span id="versionStatus" role="status" aria-live="polite">Update check not run</span>
       <button class="btn secondary" id="checkVersion" type="button" disabled>Check again</button>
       <a id="releaseLink" href="https://github.com/paulkakell/kellmarks/releases/latest" target="_blank" rel="noopener noreferrer">Latest release</a>
@@ -144,7 +146,8 @@
 
         <div class="field">
           <label for="desc">Description</label>
-          <textarea id="desc" maxlength="600" placeholder="Short description shown on the card"></textarea>
+          <textarea aria-describedby="descriptionHelp" id="desc" maxlength="600" placeholder="Short description shown on the card"></textarea>
+          <p class="help" id="descriptionHelp">Leave blank to use the linked site's description when enabled in Settings. Existing descriptions and edits are never overwritten.</p>
         </div>
       </div>
 

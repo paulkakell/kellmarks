@@ -2,6 +2,26 @@
 
 All notable changes are recorded here. Kellmarks versions use `Release.Feature.BugFix` in fixed-width `xx.xx.xx` form.
 
+## [02.03.00] - 2026-09-27
+
+### Added
+- Settings disclosure containing Theme, JSON/HTML import, JSON export and session-only remote icons. Add confirmed Kellmarks-only browser-storage reset; preserve server bookmarks/backups and other applications' storage. Keep version only in the footer.
+- Session-only opt-in auto-description on new saves with a blank description. Prefer standard, Open Graph, then Twitter description metadata; preserve user-entered descriptions and never fetch on edits/imports. Operator external-request denial remains authoritative.
+- Compatible `POST /api/entries` boolean `fetchDescription` and diagnostic response header; bounded public-web retrieval with DNS/socket pinning, certificate verification, redirect/private-network defenses and failure-safe saving. Add `KELLMARKS_METADATA_RATE_LIMIT` (default 30/minute/client).
+- Regression coverage for metadata/network policy, concurrency, Settings/reset and real-browser creation/consent/fallback behavior. No runtime dependency or schema-2 migration.
+
+### Changed
+- Update all three CodeQL actions to reviewed immutable 4.38.2 revision, carrying PR #8 onto main.
+- Align version markers, API/OpenAPI, configuration, installation, security and user guides. Correct roadmap numbering/ledger without marking undelivered milestones complete. Preserve 02.02.01 release-download verification and all earlier published versions.
+
+## [02.02.01] - 2026-09-27
+
+### Fixed
+- Publish the standalone environment template as `env.docker.example`, avoiding GitHub's leading-dot filename normalization. Keep `.env.docker.example` inside the installation archive and source checkout. Update Linux/macOS/PowerShell download commands and checksum instructions.
+- Download every uploaded release asset and compare exact names, sizes and SHA-256 hashes against the locally prepared assets before promoting the `latest` image alias. Detect renamed, missing, extra or modified downloads.
+- Add release-asset round-trip and documentation regressions. Classification: packaging/documentation fix; no API, runtime dependency, authentication, configuration-default or schema-2 changes and no migration.
+- Preserve the published `v02.02.00` release and image without moving tags. Baseline commit: `acf2a949ee2e497a8939e1275f8ee26320d8b909` (PR #16); initial GHCR installation: #14. Exact fix commit and CI evidence are recorded in the implementing PR.
+
 ## [02.02.00] - 2026-09-27
 
 ### Added
@@ -12,6 +32,7 @@ All notable changes are recorded here. Kellmarks versions use `Release.Feature.B
 - Configuration-parity, standalone Compose, registry-safety, artifact-safety and multi-architecture deployment regressions.
 
 ### Fixed
+- Validate each immutable platform child from the published image index, avoiding classic Docker image-store collisions when testing AMD64 and ARM64 on one runner. The initial registry round-trip halted safely before version promotion; no released tag was changed (PR #14, commit `600af60440b4d8ea4a3d9f23e86da44635b023a8`).
 - Require Docker deployment checks alongside existing exact-commit release gates, and restrict publication to trusted main push events or an explicit main dispatch.
 - Avoid source/registry Compose filename ambiguity by using explicit `-f docker-compose.yml` commands.
 - Reject conflicting image revisions rather than overwriting an existing version; distinguish missing manifests from registry authorization/network failures.

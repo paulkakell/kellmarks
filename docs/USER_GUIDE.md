@@ -1,4 +1,4 @@
-# KellMarks user guide 02.01.02
+# KellMarks user guide 02.03.00
 
 For a shared full-server installation without a local build, follow the
 [GHCR and docker-compose.yml installation guide](GHCR_INSTALLATION.md).
@@ -9,7 +9,7 @@ This guide describes implemented behavior. The [roadmap](ROADMAP.md) describes l
 
 ## Settings
 
-Open **Settings** in the header for **Theme**, **Import links (JSON / HTML)**, **Export links (JSON)**, **Allow remote icons for this session**, and **Clear browser memory…**. Import/export no longer appear in the hierarchy sidebar. The installed version and update check appear only in the footer, not beside the logo.
+Open **Settings** in the header for **Theme**, **Import links (JSON / HTML)**, **Export links (JSON)**, **Allow remote icons for this session**, **Fill missing descriptions from linked sites for this session**, and **Clear browser memory…**. Import/export no longer appear in the hierarchy sidebar. The installed version and update check appear only in the footer, not beside the logo.
 
 Settings works with mouse, touch or keyboard. Tab moves between its native controls; Escape, the Settings button, or a click outside dismisses it. Theme and import dialogs retain their preview/cancel behavior and return focus to their Settings control when closed. Remote icons still require session consent and the operator's permission. JSON exports include the full library, regardless of the current search or tag filter. Reviewed imports still require an available server; static/browser-only collections can be exported.
 
@@ -114,3 +114,32 @@ The bottom of the page displays the installed version, release status, a **Check
 Results are cached per server process for one hour, or five minutes after an unsuccessful check. **Check again** refreshes the displayed cached result and retries upstream once the cache expires; the timestamp identifies the actual network attempt. A network error never means the software is current. The check does not download or install updates.
 
 `KELLMARKS_EXTERNAL_REQUESTS=0` disables the lookup. Static demonstration mode shows a manual release link and explains that automatic checking requires the server. Creation-time tag suggestions and themes still work locally when external requests are disabled or the API is unavailable.
+
+## Fill a missing description from the linked site (02.03.00)
+
+Open **Settings** and enable **Fill missing descriptions from linked sites for this
+session**. Then choose **Add**, enter a URL, leave Description blank and save.
+Kellmarks requests that public page from your server and uses its standard
+`description` metadata, falling back to Open Graph and then Twitter metadata.
+The saved result is plain text, limited to 600 characters and editable afterward.
+A description you type is never replaced, even when this option is enabled.
+
+Only a new Save requests metadata: checking the box, typing a URL, editing an
+existing bookmark, importing a collection and rendering/searching the dashboard
+never do. A blank description on an edit stays blank. This is not bulk backfill.
+The editor shows a busy state and prevents duplicate submission while saving.
+
+The option resets to off on every reload, including Clear browser memory. It is
+unavailable in browser-only/file mode and when the operator has disabled external
+requests. No third-party scraping service, browser cookies or Kellmarks token is
+sent. The destination sees your **server's** address and requested page path/query;
+avoid enabling this for confidential or token-bearing links. Fragments are omitted.
+
+Private-network/localhost links remain valid bookmarks but are never fetched for
+descriptions. Retrieval allows only HTTP(S) on standard ports, verified HTTPS and
+at most three redirects, with a six-second deadline and 256 KiB HTML prefix limit.
+Compressed/non-HTML pages and inaccessible/login-only pages may have no usable
+metadata; JavaScript-generated descriptions are not executed. On failure or when
+limits are busy, the bookmark still saves and the message says no site description
+was available. Add your own description with Edit; saving an edit will not retry
+an external fetch. Invalid input or a failed store write still reports a save error.

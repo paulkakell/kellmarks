@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from browser_enhancements import run_feature_scenarios
+from browser_metadata import MOCK_SERVER, run_metadata_scenarios
 from browser_network import intercept_requests
 from browser_retro_cards import run_retro_card_scenarios
 from browser_settings import enable_remote_icons, run_settings_scenarios
@@ -22,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 @contextmanager
-def server(external: bool = True):
+def server(external: bool = True, metadata: bool = False):
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 0))
         port = listener.getsockname()[1]
@@ -39,7 +40,8 @@ def server(external: bool = True):
         })
         with (Path(directory) / "server.log").open("w+") as log:
             process = subprocess.Popen(  # noqa: S603
-                [os.getenv("KELLMARKS_TEST_PYTHON", sys.executable), "docs/server/app.py"],
+                [os.getenv("KELLMARKS_TEST_PYTHON", sys.executable),
+                 *(["-c", MOCK_SERVER] if metadata else ["docs/server/app.py"])],
                 cwd=ROOT, env=environment, stdout=log, stderr=subprocess.STDOUT,
             )
             try:
@@ -226,6 +228,7 @@ def main() -> None:
             completed.extend(run_feature_scenarios(browser, server))
             completed.extend(run_retro_card_scenarios(browser, server))
             completed.extend(run_settings_scenarios(browser, server))
+            completed.extend(run_metadata_scenarios(browser, server))
         finally:
             browser.close()
     print(json.dumps({"browserScenariosPassed": len(completed), "scenarios": completed}, indent=2))

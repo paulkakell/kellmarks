@@ -31,11 +31,12 @@ from importing import (
     library_revision,
     parse_bookmark_html,
 )
+from metadata import DescriptionFetcher
 from site_defaults import suggest_tags
 from updates import ReleaseChecker
 from werkzeug.exceptions import BadRequest, RequestEntityTooLarge, UnsupportedMediaType
 
-APP_VERSION = "02.02.00"
+APP_VERSION = "02.03.00"
 DATA_SCHEMA_VERSION = 2
 DEFAULT_PORT = 8787
 DEFAULT_MAX_REQUEST_BYTES = 1_048_576
@@ -951,6 +952,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             )
         ),
         WRITE_RATE_LIMIT=_env_int("KELLMARKS_WRITE_RATE_LIMIT", 120, 1, 10_000),
+        METADATA_RATE_LIMIT=_env_int("KELLMARKS_METADATA_RATE_LIMIT", 30, 1, 10_000),
         DDG_RATE_LIMIT=_env_int("KELLMARKS_DDG_RATE_LIMIT", 30, 1, 10_000),
         AUTH_RATE_LIMIT=_env_int("KELLMARKS_AUTH_RATE_LIMIT", 20, 1, 10_000),
     )
@@ -995,6 +997,8 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
 
     limiter = SlidingWindowLimiter()
     app.extensions["kellmarks_limiter"] = limiter
+    description_fetcher = DescriptionFetcher()
+    app.extensions["kellmarks_description_fetcher"] = description_fetcher
     release_checker = ReleaseChecker(APP_VERSION)
     app.extensions["kellmarks_release_checker"] = release_checker
 
@@ -1259,7 +1263,31 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         limited = enforce_write_rate_limit()
         if limited is not None:
             return limited, 429
-        cleaned = normalize_entry_payload(parse_json_object())
+        payload = parse_json_object()
+        cleaned = normalize_entry_payload(payload)
+        fetch_description = payload.get("fetchDescription", False)
+        if not isinstance(fetch_description, bool):
+            raise ValidationError("fetchDescription must be a boolean")
+        description_status = "not-requested"
+        if fetch_description:
+            if cleaned["description"]:
+                description_status = "preserved"
+            elif not app.config["EXTERNAL_REQUESTS_ALLOWED"]:
+                description_status = "disabled"
+            elif not limiter.allow(
+                request_client_key("metadata"), int(app.config["METADATA_RATE_LIMIT"]), 60
+            ):
+                description_status = "rate-limited"
+            else:
+                # No external I/O under the private store's write lock. Recheck
+                # capacity in the atomic mutation after the bounded fetch.
+                if len(store.read()["entries"]) >= int(app.config["MAX_ENTRIES"]):
+                    raise ValidationError("entry limit reached")
+                result = description_fetcher.fetch(cleaned["url"])
+                cleaned["description"] = result.description
+                description_status = result.status
+            log_event(logging.INFO, "description_fetch", requestId=g.request_id,
+                      status=description_status)
         now = utc_now_iso()
 
         def mutation(data: dict[str, Any]) -> dict[str, Any]:
@@ -1278,7 +1306,9 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             return entry
 
         entry = store.mutate(mutation)
-        return jsonify(entry), 201
+        response = jsonify(entry)
+        response.headers["X-Kellmarks-Description-Status"] = description_status
+        return response, 201
 
     @app.get("/api/entries/<entry_id>")
     def get_entry(entry_id: str) -> tuple[Response, int] | Response:

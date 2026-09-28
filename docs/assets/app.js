@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "02.02.00";
+  const APP_VERSION = "02.03.00";
   const enhancements = globalThis.KellmarksEnhancements;
   const AUTH_KEY = "kellmarks_api_token_v1";
   const LOCAL_KEY = "kellmarks_local_fallback_v2";
@@ -65,6 +65,8 @@
     authenticationCancelled: false,
     externalRequestsAllowed: false,
     remoteIcons: false,
+    autoDescriptions: false,
+    saving: false,
     sortOrder: "title",
     importSource: null,
     importReview: null,
@@ -659,6 +661,7 @@
   }
 
   function closeEditor() {
+    if (state.saving) return;
     try {
       dialog.close();
     } catch (_error) {
@@ -667,8 +670,21 @@
     state.editingId = null;
   }
 
+  function setSaving(saving) {
+    state.saving = saving;
+    form.setAttribute("aria-busy", String(saving));
+    for (const control of form.querySelectorAll("input, textarea, button")) {
+      control.disabled = saving;
+    }
+    $("#closeModal").disabled = saving;
+  }
+  dialog.addEventListener("cancel", (event) => {
+    if (state.saving) event.preventDefault();
+  });
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (state.saving) return;
     const url = safeURL(urlInput.value);
     const iconUrl = safeURL(iconInput.value, false);
     if (!url || iconUrl === null) {
@@ -689,15 +705,21 @@
       tags
     };
     const editingId = state.editingId;
+    const fetchDescription = !editingId && !payload.description && state.apiReady &&
+      state.externalRequestsAllowed && state.autoDescriptions;
+    if (fetchDescription) payload.fetchDescription = true;
     if (!editingId && !state.apiReady && !payload.tags.length) {
       payload.tags = enhancements.suggestTags(url, state.entries, state.siteRules);
     }
+    let savedDescription = "";
+    setSaving(true);
     try {
       if (state.apiReady) {
-        await apiFetch(editingId ? API.entry(editingId) : API.entries, {
+        const saved = await apiFetch(editingId ? API.entry(editingId) : API.entries, {
           method: editingId ? "PUT" : "POST",
           body: JSON.stringify(payload)
         });
+        savedDescription = saved.description || "";
         state.entries = (await apiFetch(API.entries)).map(cleanEntry).filter(Boolean);
       } else if (editingId) {
         const index = state.entries.findIndex((entry) => entry.id === editingId);
@@ -709,12 +731,17 @@
         state.entries.unshift({ id: uid(), createdAt: nowISO(), updatedAt: nowISO(), ...payload });
         saveLocalEntries();
       }
+      setSaving(false);
       closeEditor();
       renderTree();
       renderCards();
-      showToast(editingId ? "Updated" : "Added");
+      showToast(editingId ? "Updated" : fetchDescription
+        ? (savedDescription ? "Added with site description" : "Added; no site description was available")
+        : "Added");
     } catch (error) {
       showToast(error.message || "Save failed");
+    } finally {
+      setSaving(false);
     }
   });
 
@@ -971,6 +998,8 @@
     const allowed = state.apiReady && state.externalRequestsAllowed;
     const query = state.activeQuery.trim();
     $("#webSearchBtn").disabled = !allowed || !query || query.length > 256;
+    $("#autoDescriptions").disabled = !allowed;
+    $("#autoDescriptions").checked = allowed && state.autoDescriptions;
     $("#remoteIcons").disabled = !allowed;
     $("#remoteIcons").checked = allowed && state.remoteIcons;
     $("#privacyNotice").textContent = allowed
@@ -981,6 +1010,10 @@
   $("#sortOrder").addEventListener("change", () => {
     state.sortOrder = $("#sortOrder").value;
     renderCards();
+  });
+  $("#autoDescriptions").addEventListener("change", () => {
+    state.autoDescriptions = state.apiReady && state.externalRequestsAllowed &&
+      $("#autoDescriptions").checked;
   });
   $("#remoteIcons").addEventListener("change", () => {
     state.remoteIcons = state.externalRequestsAllowed && $("#remoteIcons").checked;
