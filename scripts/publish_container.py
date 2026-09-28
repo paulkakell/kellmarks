@@ -56,7 +56,8 @@ def run(args: list[str], *, check: bool = True,
 def inspect_existing(image: str, tag: str, version: str, revision: str) -> str | None:
     """Only an explicit missing manifest permits building; auth/network errors fail."""
     reference = f"{image}:{tag}"
-    result = run(["docker", "buildx", "imagetools", "inspect", reference], check=False)
+    result = run(["docker", "buildx", "imagetools", "inspect", reference,
+                  "--format", "{{json .Manifest}}"], check=False)
     if result.returncode:
         error = result.stderr.lower()
         if ("not found" in error or "manifest unknown" in error) and not any(
@@ -64,17 +65,17 @@ def inspect_existing(image: str, tag: str, version: str, revision: str) -> str |
         ):
             return None
         raise RuntimeError("registry inspection failed; check package access and connectivity")
-    run(["docker", "pull", "--platform", "linux/amd64", reference], timeout=300)
-    info = json.loads(run(["docker", "image", "inspect", reference]).stdout)[0]
+    # Resolve once in the registry; local RepoDigests may list a child before its index.
+    digest = checked_digest(str(json.loads(result.stdout).get("digest", "")))
+    immutable = f"{image}@{digest}"
+    run(["docker", "pull", "--platform", "linux/amd64", immutable], timeout=300)
+    info = json.loads(run(["docker", "image", "inspect", immutable]).stdout)[0]
     labels = info["Config"].get("Labels") or {}
     if labels.get("org.opencontainers.image.version") != version or labels.get(
         "org.opencontainers.image.revision"
     ) != revision:
         raise RuntimeError("existing image belongs to another release; refusing to overwrite it")
-    for value in info.get("RepoDigests", []):
-        if value.startswith(image + "@"):
-            return checked_digest(value.split("@", 1)[1])
-    raise RuntimeError("registry image has no verified repository digest")
+    return digest
 
 
 def validate_platforms(manifest: dict[str, Any]) -> None:
@@ -84,6 +85,22 @@ def validate_platforms(manifest: dict[str, Any]) -> None:
     }
     if not set(PLATFORMS).issubset(platforms):
         raise ValueError("image index must include Linux AMD64 and ARM64")
+
+
+def platform_references(image: str, manifest: dict[str, Any]) -> list[tuple[str, str]]:
+    """Resolve immutable children so classic Docker stores never reuse one index key."""
+    validate_platforms(manifest)
+    references = []
+    for platform in PLATFORMS:
+        operating_system, architecture = platform.split("/")
+        matches = [item for item in manifest["manifests"]
+                   if item.get("platform", {}).get("os") == operating_system
+                   and item.get("platform", {}).get("architecture") == architecture]
+        if len(matches) != 1:
+            raise ValueError("image index must have one unambiguous child per platform")
+        digest = checked_digest(str(matches[0].get("digest", "")))
+        references.append((platform, f"{image}@{digest}"))
+    return references
 
 
 def write_assets(root: Path, destination: Path, *, image: str, version: str,
@@ -148,10 +165,9 @@ def main() -> None:
     reference = f"{image}@{digest}"
     manifest = json.loads(run(["docker", "buildx", "imagetools", "inspect", reference,
                                "--raw"]).stdout)
-    validate_platforms(manifest)
-    for platform in PLATFORMS:
-        run(["docker", "pull", "--platform", platform, reference], timeout=300)
-        environment = dict(os.environ, KELLMARKS_TEST_IMAGE=reference,
+    for platform, platform_reference in platform_references(image, manifest):
+        run(["docker", "pull", "--platform", platform, platform_reference], timeout=300)
+        environment = dict(os.environ, KELLMARKS_TEST_IMAGE=platform_reference,
                            KELLMARKS_TEST_COMPOSE="docker-compose.yml",
                            DOCKER_DEFAULT_PLATFORM=platform)
         run([sys.executable, "scripts/docker_smoke.py"], env=environment, timeout=900)

@@ -92,7 +92,7 @@ def test_existing_image_revision_is_verified(monkeypatch, revision):
     image = [{'Config': {'Labels': {'org.opencontainers.image.version': VERSION,
                                    'org.opencontainers.image.revision': revision}},
               'RepoDigests': [IMAGE + '@' + DIGEST]}]
-    responses = [subprocess.CompletedProcess([], 0, '', ''),
+    responses = [subprocess.CompletedProcess([], 0, json.dumps({'digest': DIGEST}), ''),
                  subprocess.CompletedProcess([], 0, '', ''),
                  subprocess.CompletedProcess([], 0, json.dumps(image), '')]
     monkeypatch.setitem(function.__globals__, 'run', Mock(side_effect=responses))
