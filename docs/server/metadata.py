@@ -176,7 +176,9 @@ def request_description(
             raise UnsafeTarget("non-public peer")
         if scheme == "https":
             sock.settimeout(budget.remaining())
-            sock = ssl.create_default_context().wrap_socket(sock, server_hostname=hostname)
+            context = ssl.create_default_context()
+            context.minimum_version = ssl.TLSVersion.TLSv1_2
+            sock = context.wrap_socket(sock, server_hostname=hostname)
             budget.attach(sock)
         connection.sock = sock
         sock.settimeout(budget.remaining())
