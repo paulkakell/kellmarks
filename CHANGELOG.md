@@ -2,6 +2,14 @@
 
 All notable changes are recorded here. Kellmarks versions use `Release.Feature.BugFix` in fixed-width `xx.xx.xx` form.
 
+## [02.02.01] - 2026-09-27
+
+### Fixed
+- Publish the standalone environment template as `env.docker.example`, avoiding GitHub's leading-dot filename normalization. Keep `.env.docker.example` inside the installation archive and source checkout. Update Linux/macOS/PowerShell download commands and checksum instructions.
+- Download every uploaded release asset and compare exact names, sizes and SHA-256 hashes against the locally prepared assets before promoting the `latest` image alias. Detect renamed, missing, extra or modified downloads.
+- Add release-asset round-trip and documentation regressions. Classification: packaging/documentation fix; no API, runtime dependency, authentication, configuration-default or schema-2 changes and no migration.
+- Preserve the published `v02.02.00` release and image without moving tags. Baseline commit: `acf2a949ee2e497a8939e1275f8ee26320d8b909` (PR #16); initial GHCR installation: #14. Exact fix commit and CI evidence are recorded in the implementing PR.
+
 ## [02.02.00] - 2026-09-27
 
 ### Added

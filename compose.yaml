@@ -2,7 +2,7 @@ name: kellmarks
 
 services:
   kellmarks:
-    image: "${KELLMARKS_IMAGE:-kellmarks:02.02.00}"
+    image: "${KELLMARKS_IMAGE:-kellmarks:02.02.01}"
     build:
       context: .
     restart: unless-stopped

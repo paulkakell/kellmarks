@@ -4,7 +4,7 @@ name: kellmarks
 
 services:
   kellmarks:
-    image: "${KELLMARKS_IMAGE:-ghcr.io/paulkakell/kellmarks:02.02.00}"
+    image: "${KELLMARKS_IMAGE:-ghcr.io/paulkakell/kellmarks:02.02.01}"
     pull_policy: missing
     restart: unless-stopped
     init: true
