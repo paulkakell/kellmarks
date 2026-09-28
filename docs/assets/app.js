@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "02.02.00";
+  const APP_VERSION = "02.02.01";
   const enhancements = globalThis.KellmarksEnhancements;
   const AUTH_KEY = "kellmarks_api_token_v1";
   const LOCAL_KEY = "kellmarks_local_fallback_v2";

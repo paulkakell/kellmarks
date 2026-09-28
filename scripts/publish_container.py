@@ -136,7 +136,8 @@ def write_assets(root: Path, destination: Path, *, image: str, version: str,
     (destination / f"kellmarks-{version}-docker.tar.gz").write_bytes(bundle.getvalue())
     # Flat assets support a minimal two-file installation; the tar preserves paths.
     for name, content in files.items():
-        (destination / Path(name).name).write_bytes(content)
+        flat_name = "env.docker.example" if name == ".env.docker.example" else Path(name).name
+        (destination / flat_name).write_bytes(content)
     sums = "".join(
         f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}\n"
         for path in sorted(destination.iterdir()) if path.is_file() and path.name != "SHA256SUMS"

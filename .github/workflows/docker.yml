@@ -38,7 +38,7 @@ jobs:
       - name: Validate release scripts
         run: |
           python -m compileall -q scripts docker
-          mypy scripts/publish_container.py
+          mypy scripts/publish_container.py scripts/verify_release_assets.py
       - name: Build the production image
         env:
           BUILD_REVISION: ${{ github.sha }}

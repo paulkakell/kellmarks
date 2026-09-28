@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM python:3.13-slim-bookworm
 
-ARG KELLMARKS_VERSION=02.02.00
+ARG KELLMARKS_VERSION=02.02.01
 ARG VCS_REF=unknown
 LABEL org.opencontainers.image.title="Kellmarks" \
       org.opencontainers.image.description="Authenticated bookmark dashboard and persistent API" \

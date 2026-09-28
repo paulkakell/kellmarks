@@ -183,15 +183,25 @@ jobs:
               --verify-tag \
               --title "Kellmarks ${RELEASE_VERSION}" \
               --notes-file "$RELEASE_NOTES" \
-              --latest "$CONTAINER_ASSETS"/* "$CONTAINER_ASSETS/.env.docker.example"
+              --latest "$CONTAINER_ASSETS"/*
           else
             gh release create "$RELEASE_TAG" \
               --repo "$GITHUB_REPOSITORY" \
               --target "$RELEASE_SHA" \
               --title "Kellmarks ${RELEASE_VERSION}" \
               --notes-file "$RELEASE_NOTES" \
-              --latest "$CONTAINER_ASSETS"/* "$CONTAINER_ASSETS/.env.docker.example"
+              --latest "$CONTAINER_ASSETS"/*
           fi
+
+      - name: Verify downloaded release assets before latest promotion
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          CONTAINER_ASSETS: ${{ steps.container.outputs.assets }}
+        run: |
+          set -euo pipefail
+          destination="$(mktemp -d "$RUNNER_TEMP/kellmarks-downloads.XXXXXX")"
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir "$destination"
+          python scripts/verify_release_assets.py "$CONTAINER_ASSETS" "$destination"
 
       - name: Promote latest only for the current successfully released main commit
         env:

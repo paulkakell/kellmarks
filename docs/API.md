@@ -1,4 +1,4 @@
-# Kellmarks API 02.02.00
+# Kellmarks API 02.02.01
 
 Default base URL: `http://127.0.0.1:8787`
 
@@ -58,7 +58,7 @@ Rules:
 ```json
 {
   "ok": true,
-  "version": "02.02.00",
+  "version": "02.02.01",
   "dataSchemaVersion": 2,
   "time": "2026-08-13T12:00:00Z"
 }
@@ -245,10 +245,10 @@ Uses the same authentication as other API routes. Returns HTTP 200 with status d
 
 ```json
 {
-  "currentVersion": "02.02.00",
-  "latestVersion": "02.02.00",
+  "currentVersion": "02.02.01",
+  "latestVersion": "02.02.01",
   "status": "current",
-  "releaseUrl": "https://github.com/paulkakell/kellmarks/releases/tag/v02.02.00",
+  "releaseUrl": "https://github.com/paulkakell/kellmarks/releases/tag/v02.02.01",
   "checkedAt": "2026-09-27T19:00:00Z"
 }
 ```
@@ -265,7 +265,7 @@ The server fetches one fixed HTTPS GitHub endpoint, rejects redirects, limits up
 ## Container deployment
 
 The GHCR full-server image exposes the same authenticated API and schema-2 data
-format. No new API endpoints are introduced by 02.02.00. Use the packaged
+format. No new API endpoints are introduced by 02.02.01. Use the packaged
 healthcheck for container liveness; unauthenticated health requests still return
 401. See [GHCR installation](GHCR_INSTALLATION.md) for loopback/HTTPS access and
 persistent storage. Registry credentials are never application API credentials.

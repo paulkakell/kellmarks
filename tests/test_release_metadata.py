@@ -16,7 +16,7 @@ def read(relative: str) -> str:
 
 def test_release_metadata_is_aligned() -> None:
     version = read("VERSION").strip()
-    assert version == "02.02.00"
+    assert version == "02.02.01"
     assert VERSION_PATTERN.fullmatch(version)
     assert kellmarks.APP_VERSION == version
     assert f'const APP_VERSION = "{version}";' in read("docs/assets/app.js")
