@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from browser_network import intercept_requests
+from browser_settings import choose_setting, enable_remote_icons
 from playwright.sync_api import expect
 
 VERSION = (Path(__file__).resolve().parents[1] / "VERSION").read_text().strip()
@@ -60,7 +61,7 @@ def run_feature_scenarios(browser: Any, server: Any) -> list[str]:
         entry = page.request.get(base + "/api/entries").json()[0]
         assert entry["iconUrl"] == ""
         assert external == []
-        page.locator("#remoteIcons").check()
+        enable_remote_icons(page)
         expect(card(page, "GitHub saved").locator(".icon img")).to_have_attribute("src", "https://github.com/favicon.ico")
         card(page, "GitHub saved").locator(".icon").scroll_into_view_if_needed()
         page.wait_for_function("document.querySelector('.icon img')?.naturalWidth > 0")
@@ -81,7 +82,7 @@ def run_feature_scenarios(browser: Any, server: Any) -> list[str]:
         expect(card(page, "GitHub saved").locator(".chip")).to_have_count(0)
         completed.append("favicon consent, custom-icon precedence, failed-image fallback and creation-only tags")
 
-        page.locator("#themeBtn").click()
+        choose_setting(page, "#themeBtn")
         expect(page.locator("#themePreset option")).to_have_count(23)
         expect(page.locator("#themePreset")).to_have_value("gold-black")
         presets = page.evaluate("KellmarksEnhancements.THEMES.map(t => ({id:t.id, accent:t.colors.accent}))")
@@ -92,22 +93,22 @@ def run_feature_scenarios(browser: Any, server: Any) -> list[str]:
         page.locator("#applyTheme").click()
         page.reload()
         expect(page.locator("html")).to_have_attribute("data-theme", "forest")
-        page.locator("#themeBtn").click()
+        choose_setting(page, "#themeBtn")
         page.locator("#themePreset").select_option("arctic")
         page.keyboard.press("Escape")
         expect(page.locator("html")).to_have_attribute("data-theme", "forest")
-        page.locator("#themeBtn").click()
+        choose_setting(page, "#themeBtn")
         page.locator("#themeBackground").evaluate("el => {el.value='#123456'; el.dispatchEvent(new Event('input', {bubbles:true}));}")
         expect(page.locator("#themePreset")).to_have_value("custom")
         page.locator("#applyTheme").click()
         page.reload()
         expect(page.locator("html")).to_have_attribute("data-theme", "custom")
         assert page.evaluate("getComputedStyle(document.body).backgroundColor") == "rgb(18, 52, 86)"
-        page.locator("#themeBtn").click()
+        choose_setting(page, "#themeBtn")
         page.locator("#themeText").evaluate("el => {el.value='#123456'; el.dispatchEvent(new Event('input', {bubbles:true}));}")
         expect(page.locator("#themeContrast")).to_contain_text("Low text contrast")
         page.locator("#cancelTheme").click()
-        page.locator("#themeBtn").click()
+        choose_setting(page, "#themeBtn")
         page.locator("#resetTheme").click()
         page.locator("#applyTheme").click()
         page.reload()
@@ -132,7 +133,7 @@ def run_feature_scenarios(browser: Any, server: Any) -> list[str]:
         page.reload()
         expect(page.locator("html")).to_have_attribute("data-theme", "gold-black")
         page.set_viewport_size({"width": 390, "height": 844})
-        page.locator("#themeBtn").click()
+        choose_setting(page, "#themeBtn")
         expect(page.locator("#themeDialog")).to_be_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         screenshot_dir = os.getenv("KELLMARKS_FEATURE_SCREENSHOTS")
@@ -169,7 +170,7 @@ def run_feature_scenarios(browser: Any, server: Any) -> list[str]:
         page.add_init_script("Storage.prototype.getItem = () => {throw new Error('blocked')}; Storage.prototype.setItem = () => {throw new Error('blocked')};")
         page.route(base + "/api/version", lambda route: route.fulfill(json={**version, "status": "unavailable"}))
         page.goto(base)
-        page.locator("#themeBtn").click()
+        choose_setting(page, "#themeBtn")
         page.locator("#themePreset").select_option("forest")
         page.locator("#applyTheme").click()
         expect(page.locator("#themeContrast")).to_contain_text("Browser storage is unavailable")

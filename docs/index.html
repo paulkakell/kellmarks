@@ -18,7 +18,6 @@
           <div>
             <div class="brand-title">
               <h1>Kellmarks</h1>
-              <span class="version-badge" aria-label="Kellmarks version 02.01.02">v02.01.02</span>
             </div>
             <div class="sub">Local first, protected, searchable</div>
           </div>
@@ -29,7 +28,21 @@
           <div class="kbd" title="Shortcut">Ctrl K</div>
         </div>
 
-        <button class="btn secondary" id="themeBtn" type="button">Theme</button>
+        <div class="settings-control">
+          <button class="btn secondary" id="settingsBtn" type="button" aria-expanded="false" aria-controls="settingsMenu">Settings</button>
+          <section class="settings-menu" id="settingsMenu" aria-labelledby="settingsBtn" hidden>
+            <h2>Appearance</h2>
+            <button class="btn secondary" id="themeBtn" type="button">Theme</button>
+            <h2>Links</h2>
+            <button class="btn secondary" id="importBtn" type="button">Import links (JSON / HTML)</button>
+            <button class="btn secondary" id="exportBtn" type="button">Export links (JSON)</button>
+            <h2>Privacy and browser data</h2>
+            <label class="checkbox-label"><input id="remoteIcons" type="checkbox" disabled> Allow remote icons for this session (contacts their websites)</label>
+            <p class="help">Remote icons reset to off on reload and remain unavailable when the server disallows external requests.</p>
+            <button class="btn secondary" id="clearMemoryBtn" type="button">Clear browser memory…</button>
+            <input type="file" id="filePick" accept="application/json,text/html,.json,.html,.htm" hidden>
+          </section>
+        </div>
         <button class="btn" id="addBtn" type="button">Add</button>
       </div>
     </header>
@@ -38,10 +51,6 @@
       <aside>
         <div class="side-top">
           <h2>Hierarchy</h2>
-          <div class="side-actions">
-            <button class="btn secondary" id="exportBtn" type="button">Export</button>
-            <button class="btn secondary" id="importBtn" type="button">Import</button>
-          </div>
         </div>
         <div class="tree" id="tree"></div>
       </aside>
@@ -71,7 +80,6 @@
               <button class="btn secondary" id="webSearchBtn" type="button" disabled>Search the web</button>
             </div>
             <p class="help" id="privacyNotice">Library search stays here. Web search sends the current query to DuckDuckGo only when selected.</p>
-            <label class="checkbox-label"><input id="remoteIcons" type="checkbox" disabled> Allow remote icons for this session (contacts their websites)</label>
           </div>
           <div id="cards" class="grid"></div>
           <div id="empty" class="empty" style="display:none;"></div>
@@ -94,7 +102,7 @@
       </div>
     </main>
     <footer class="app-footer" aria-label="Application version and updates">
-      <span id="versionCurrent">Kellmarks v02.01.02</span>
+      <span id="versionCurrent" aria-label="Kellmarks version 02.01.02">Kellmarks v02.01.02</span>
       <span id="versionStatus" role="status" aria-live="polite">Update check not run</span>
       <button class="btn secondary" id="checkVersion" type="button" disabled>Check again</button>
       <a id="releaseLink" href="https://github.com/paulkakell/kellmarks/releases/latest" target="_blank" rel="noopener noreferrer">Latest release</a>
@@ -237,7 +245,22 @@
       <button class="btn" id="applyImport" type="button" disabled>Apply import</button>
     </div>
   </dialog>
-  <input type="file" id="filePick" accept="application/json,text/html,.json,.html,.htm" style="display:none;">
+  <dialog id="clearMemoryDialog" aria-labelledby="clearMemoryTitle" aria-describedby="clearMemoryDescription">
+    <div class="modal-head">
+      <h2 class="mh" id="clearMemoryTitle">Clear browser memory?</h2>
+      <button class="close" id="closeClearMemory" type="button">Close</button>
+    </div>
+    <div class="modal-body">
+      <p id="clearMemoryDescription">This permanently removes Kellmarks browser-only bookmarks, your saved theme and this tab’s saved API token for this site. Export browser-only links from Settings first.</p>
+      <p>Server bookmarks and backups are not deleted. The page will reload with default settings and remote icons off. A protected server may ask for your API token again.</p>
+      <p class="help">Other apps’ storage and the browser’s HTTP cache are not cleared. Close or reload other Kellmarks tabs separately.</p>
+      <p id="clearMemoryStatus" role="status" aria-live="polite"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn secondary" id="cancelClearMemory" type="button" autofocus>Cancel</button>
+      <button class="btn" id="confirmClearMemory" type="button">Clear and reload</button>
+    </div>
+  </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="assets/enhancements.js"></script>

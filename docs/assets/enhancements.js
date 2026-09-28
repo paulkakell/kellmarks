@@ -263,8 +263,113 @@
     void check();
   }
 
+  // Limit the reset to this application's namespace; never clear another app's
+  // data on a shared origin. Access can throw even before a Storage method runs.
+  function clearBrowserMemory(scope = globalThis) {
+    const failed = [];
+    for (const area of ["localStorage", "sessionStorage"]) {
+      let storage;
+      let keys;
+      try {
+        storage = scope[area];
+        keys = Array.from({ length: storage.length }, (_, index) => storage.key(index))
+          .filter((key) => typeof key === "string" && key.startsWith("kellmarks_"));
+      } catch (_error) {
+        failed.push(area);
+        continue;
+      }
+      for (const key of keys) {
+        try {
+          storage.removeItem(key);
+          if (storage.getItem(key) !== null) throw new Error("Storage removal failed");
+        } catch (_error) {
+          if (!failed.includes(area)) failed.push(area);
+        }
+      }
+    }
+    return failed;
+  }
+
+  function setupSettings() {
+    const $ = (selector) => document.querySelector(selector);
+    const control = $(".settings-control");
+    const button = $("#settingsBtn");
+    const menu = $("#settingsMenu");
+    const dialog = $("#clearMemoryDialog");
+    const status = $("#clearMemoryStatus");
+
+    function positionMenu() {
+      if (menu.hidden) return;
+      menu.style.transform = "none";
+      const bounds = menu.getBoundingClientRect();
+      const shift = bounds.left < 16 ? 16 - bounds.left
+        : Math.min(0, window.innerWidth - 16 - bounds.right);
+      menu.style.transform = `translateX(${shift}px)`;
+      menu.style.maxHeight = `${Math.max(0, window.innerHeight - bounds.top - 16)}px`;
+    }
+
+    function closeMenu(restoreFocus = false) {
+      menu.hidden = true;
+      button.setAttribute("aria-expanded", "false");
+      if (restoreFocus || menu.contains(document.activeElement)) button.focus();
+    }
+
+    button.addEventListener("click", () => {
+      if (!menu.hidden) {
+        closeMenu(true);
+        return;
+      }
+      menu.hidden = false;
+      button.setAttribute("aria-expanded", "true");
+      positionMenu();
+      $("#themeBtn").focus();
+    });
+    // Dialogs launched from Settings stay above the disclosure. Their native
+    // close behavior returns focus to the still-visible originating control.
+    document.addEventListener("click", (event) => {
+      // A dialog's Close/Apply click still bubbles after it has been closed.
+      if (!menu.hidden && !control.contains(event.target) && !event.target.closest("dialog") &&
+          !document.querySelector("dialog[open]")) {
+        closeMenu();
+      }
+    });
+    document.addEventListener("focusin", (event) => {
+      if (!menu.hidden && !control.contains(event.target) && !document.querySelector("dialog[open]")) {
+        closeMenu();
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !menu.hidden && !document.querySelector("dialog[open]")) {
+        event.preventDefault();
+        closeMenu(true);
+      }
+    });
+    window.addEventListener("resize", positionMenu);
+
+    $("#clearMemoryBtn").addEventListener("click", () => {
+      status.textContent = "";
+      dialog.showModal();
+      $("#cancelClearMemory").focus();
+    });
+    for (const id of ["#closeClearMemory", "#cancelClearMemory"]) {
+      $(id).addEventListener("click", () => dialog.close());
+    }
+    $("#confirmClearMemory").addEventListener("click", () => {
+      const failed = clearBrowserMemory();
+      if (failed.length) {
+        status.textContent = "Some browser data could not be cleared. Accessible data may already have been removed. Check this site's browser storage permissions and try again. Server bookmarks are unchanged; the page has not reloaded.";
+        return;
+      }
+      window.location.reload();
+    });
+  }
+
   globalThis.KellmarksEnhancements = Object.freeze({
     THEMES: Object.freeze(THEMES), THEME_KEY, siteHost, faviconURL, suggestTags,
-    loadSiteRules, normalizeTheme, contrast, setupThemes, setupVersionCheck
+    loadSiteRules, normalizeTheme, contrast, setupThemes, setupVersionCheck, clearBrowserMemory
   });
+  // The disclosure is independent of API startup and also works on static hosts.
+  if (typeof document !== "undefined") {
+    document.addEventListener("DOMContentLoaded", setupSettings, { once: true });
+  }
 })();

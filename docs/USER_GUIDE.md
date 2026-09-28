@@ -2,9 +2,23 @@
 
 This guide describes implemented behavior. The [roadmap](ROADMAP.md) describes later work and should not be read as a current feature list.
 
+## Settings
+
+Open **Settings** in the header for **Theme**, **Import links (JSON / HTML)**, **Export links (JSON)**, **Allow remote icons for this session**, and **Clear browser memory…**. Import/export no longer appear in the hierarchy sidebar. The installed version and update check appear only in the footer, not beside the logo.
+
+Settings works with mouse, touch or keyboard. Tab moves between its native controls; Escape, the Settings button, or a click outside dismisses it. Theme and import dialogs retain their preview/cancel behavior and return focus to their Settings control when closed. Remote icons still require session consent and the operator's permission. JSON exports include the full library, regardless of the current search or tag filter. Reviewed imports still require an available server; static/browser-only collections can be exported.
+
+### Clear browser memory
+
+**Settings → Clear browser memory…** opens a confirmation with **Cancel** focused. Nothing is removed until **Clear and reload** is selected. Export browser-only links first: deletion cannot be undone.
+
+The action removes Kellmarks-owned local and session storage for this origin, including browser-only bookmarks, the saved theme, and this tab's API token. It reloads the page, restoring the default theme, resetting search/sort and remote-icon consent, and asking for authentication again when required. Server bookmarks, private backups and downloaded exports are not deleted. A static host may show its bundled sample bookmarks again after the local copy is removed.
+
+Other applications' keys on the same origin, cookies, the browser's HTTP cache, and other sites are not cleared. Other open tabs keep their in-memory state and session tokens; close or reload them separately to avoid retaining or re-saving stale data. If browser policy blocks clearing storage, an error is shown without automatically reloading or claiming success; accessible data may already have been removed. Correct the browser's site-data permissions and retry.
+
 ## Bring in an existing collection
 
-Start the Flask service and open KellMarks. Select **Import**, then choose a KellMarks JSON export, a JSON array of bookmark objects, or a browser bookmark export ending in `.html` or `.htm`. The first preview defaults to **Merge with my library**. Nothing is saved during preview.
+Start the Flask service and open KellMarks. Select **Settings → Import links (JSON / HTML)**, then choose a KellMarks JSON export, a JSON array of bookmark objects, or a browser bookmark export ending in `.html` or `.htm`. The first preview defaults to **Merge with my library**. Nothing is saved during preview.
 
 For example, import a second browser's bookmarks while keeping everything already organized in KellMarks. The preview reports new entries, matching URLs, existing bookmarks that would change, unchanged matches and the final library size. The detail pane shows the first 100 items; the summary counts the complete import.
 
@@ -28,7 +42,7 @@ Titles, URLs and supported description text are imported. Browser-specific metad
 
 ### Replace everything deliberately
 
-Select **Replace my entire library**, preview again, then review the number of existing and incoming bookmarks. Apply requires a second confirmation. A JSON file with an empty entries array can intentionally clear the library in this mode. Merging an empty array does not delete existing entries. Replacement does not combine tags or apply duplicate field preferences; the incoming library replaces the old one after validation.
+Select **Replace my entire library**, preview again, then review the number of existing and incoming bookmarks. Apply requires a second confirmation. A JSON file with an empty entries array can intentionally clear the library in this mode. Merging an empty array does not delete existing entries.
 
 Example: restore a previously saved complete export. First export the current library to a separate file, then preview and confirm replacement. Do not treat the rolling `.bak` as a multi-version history.
 
@@ -46,7 +60,7 @@ Typing in **Search my library**, switching tags, sorting, editing or importing d
 
 **Search the web** explicitly sends the current query to DuckDuckGo through the server proxy. It is enabled only for a nonempty query of at most 256 characters when the server allows external requests. A new query cancels and hides stale external results. External responses are not automatically saved as bookmarks. Direct API clients can still request the proxy when the operator permits it.
 
-Remote bookmark icons are off on every page load. Selecting **Allow remote icons for this session** contacts the websites named by saved icon URLs. The choice is held in page memory, not persisted to disk, and resets on reload. Unchecking stops future image loads, but cannot retract requests already sent. Initial-letter placeholders remain available without external requests.
+Remote bookmark icons are off on every page load. Selecting **Settings → Allow remote icons for this session** contacts the websites named by saved icon URLs. The choice is held in page memory, not persisted to disk, and resets on reload. Unchecking stops future image loads, but cannot retract requests already sent. Initial-letter placeholders remain available without external requests.
 
 For an operator-enforced policy, set:
 
@@ -76,11 +90,11 @@ There is no Trash, per-bookmark undo/history, backup browser, bulk tag editor, c
 
 ## Entry defaults and appearance (02.01.01)
 
-Leave **Icon URL** blank to try the site's HTTPS `/favicon.ico`. This is a display fallback: an automatically chosen favicon is not written into the entry, so changing a bookmark URL uses the new site's icon. An explicit icon URL takes priority. Check **Allow remote icons for this session** to permit these website requests; an unavailable icon shows initials. No third-party icon service is used. The operator's external-request deny switch still wins.
+Leave **Icon URL** blank to try the site's HTTPS `/favicon.ico`. This is a display fallback: an automatically chosen favicon is not written into the entry, so changing a bookmark URL uses the new site's icon. An explicit icon URL takes priority. Check **Settings → Allow remote icons for this session** to permit these website requests; an unavailable icon shows initials. No third-party icon service is used. The operator's external-request deny switch still wins.
 
 Leave **Tags** blank when adding an entry to use up to five local suggestions. Kellmarks first reuses common tags for that same hostname, then uses bundled site rules, then falls back to `sites/<hostname>`. These are deterministic local suggestions, not fetched site keywords or AI output. Manual tags are retained. Editing a bookmark never regenerates tags: clearing them keeps it untagged, including after a URL change or reload. Imported and existing records are not backfilled.
 
-Select **Theme** in the header for 22 presets or five custom colors: page background/text, accent, and card background/text. Preview is immediate. **Apply theme** saves to this browser, **Cancel** or Escape restores the previous selection, and **Gold / black** previews the original default. Low-contrast custom combinations produce a warning rather than silently overriding your choices. Theme settings do not change the shared bookmark file or other browsers. When browser storage is blocked, a theme can still be applied for the current page.
+Select **Settings → Theme** for 22 presets or five custom colors: page background/text, accent, and card background/text. Preview is immediate. **Apply theme** saves to this browser, **Cancel** or Escape restores the previous selection, and **Gold / black** previews the original default. Low-contrast custom combinations produce a warning rather than silently overriding your choices. Theme settings do not change the shared bookmark file or other browsers. When browser storage is blocked, a theme can still be applied for the current page.
 
 ### Monochrome monitors and card navigation (02.01.02)
 

@@ -92,3 +92,49 @@ test("retro monitor presets are additive, monochrome and safely restored", () =>
     assert.equal(f.normalizeTheme(saved).preset, id);
   }
 });
+
+function fakeStorage(values = {}) {
+  const data = new Map(Object.entries(values));
+  return {
+    get length() { return data.size; },
+    key: (index) => [...data.keys()][index] ?? null,
+    getItem: (key) => data.get(key) ?? null,
+    removeItem: (key) => data.delete(key),
+    data
+  };
+}
+
+test("browser reset clears all Kellmarks keys without deleting another app's storage", () => {
+  const localStorage = fakeStorage({kellmarks_theme_v1: "{bad json", kellmarks_local_fallback_v2: "[]", kellmarks_legacy: "old", other_app: "keep"});
+  const sessionStorage = fakeStorage({kellmarks_api_token_v1: "session-only", other_app: "also keep"});
+  assert.deepEqual(plain(f.clearBrowserMemory({localStorage, sessionStorage})), []);
+  assert.deepEqual([...localStorage.data], [["other_app", "keep"]]);
+  assert.deepEqual([...sessionStorage.data], [["other_app", "also keep"]]);
+  assert.deepEqual(plain(f.clearBrowserMemory({localStorage, sessionStorage})), []);
+});
+
+test("a blocked storage getter does not prevent clearing the other storage area", () => {
+  const sessionStorage = fakeStorage({kellmarks_api_token_v1: "session-only"});
+  const scope = {get localStorage() { throw new Error("blocked"); }, sessionStorage};
+  assert.deepEqual(plain(f.clearBrowserMemory(scope)), ["localStorage"]);
+  assert.equal(sessionStorage.length, 0);
+});
+
+test("failed removal is reported while remaining keys and areas are still attempted", () => {
+  const localStorage = fakeStorage({kellmarks_theme_v1: "theme", kellmarks_local_fallback_v2: "[]"});
+  const remove = localStorage.removeItem;
+  localStorage.removeItem = (key) => {
+    if (key === "kellmarks_theme_v1") throw new Error("blocked");
+    remove(key);
+  };
+  const sessionStorage = fakeStorage({kellmarks_api_token_v1: "session-only"});
+  assert.deepEqual(plain(f.clearBrowserMemory({localStorage, sessionStorage})), ["localStorage"]);
+  assert.equal(localStorage.getItem("kellmarks_local_fallback_v2"), null);
+  assert.equal(sessionStorage.length, 0);
+});
+
+test("silent removal failures and unavailable stores do not falsely report success", () => {
+  const localStorage = fakeStorage({kellmarks_theme_v1: "theme"});
+  localStorage.removeItem = () => {};
+  assert.deepEqual(plain(f.clearBrowserMemory({localStorage})), ["localStorage", "sessionStorage"]);
+});
