@@ -12,6 +12,7 @@ All notable changes are recorded here. Kellmarks versions use `Release.Feature.B
 - Configuration-parity, standalone Compose, registry-safety, artifact-safety and multi-architecture deployment regressions.
 
 ### Fixed
+- Validate each immutable platform child from the published image index, avoiding classic Docker image-store collisions when testing AMD64 and ARM64 on one runner. The initial registry round-trip halted safely before version promotion; no released tag was changed (PR #14, commit `600af60440b4d8ea4a3d9f23e86da44635b023a8`).
 - Require Docker deployment checks alongside existing exact-commit release gates, and restrict publication to trusted main push events or an explicit main dispatch.
 - Avoid source/registry Compose filename ambiguity by using explicit `-f docker-compose.yml` commands.
 - Reject conflicting image revisions rather than overwriting an existing version; distinguish missing manifests from registry authorization/network failures.
