@@ -1,0 +1,75 @@
+name: Verified 02.03.00 source transfer
+on:
+  push:
+    branches: [integration/02300-source-transfer]
+permissions:
+  contents: read
+jobs:
+  transfer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: delivery
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 66a4c2a143bb7c6eaaaa67c7fddbec51a4919ada
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify source bytes without executing patched application code
+        working-directory: source
+        run: |
+          set -euo pipefail
+          git checkout fbefd7500995710512a646081f79753552cde1dc -- docs/USER_GUIDE.md docs/assets/app.css docs/assets/enhancements.js docs/index.html scripts/browser_checks.py scripts/browser_enhancements.py scripts/browser_retro_cards.py scripts/browser_settings.py tests/frontend_enhancements.test.cjs tests/test_release_metadata.py
+          test "$(git write-tree)" = 984992ba3840088905df4a3ed8ecb7e1059a854e
+          python - <<'PY'
+          import base64, hashlib, lzma
+          from pathlib import Path
+          chunks = sorted(Path('../delivery/.source-transfer').glob('*.b64'))
+          assert len(chunks) == 6
+          payload = ''.join(p.read_text() for p in chunks)
+          patch = lzma.decompress(base64.b64decode(payload, validate=True))
+          assert hashlib.sha256(patch).hexdigest() == '603e3561004d4a050248721188e755cc08ae60282a988523d9d9d79cdb8df67a'
+          Path('../integration.patch').write_bytes(patch)
+          PY
+          git apply --check ../integration.patch
+          git apply --index ../integration.patch
+          git diff --cached --check
+          test "$(git write-tree)" = 79935ec7e84dcb7bc6af4b2561b41bed5d39ea60
+      - name: Stage verified Git blobs only; never move a branch or execute source
+        working-directory: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import base64, json, os, subprocess, urllib.request
+          from pathlib import Path
+          expected = '79935ec7e84dcb7bc6af4b2561b41bed5d39ea60'
+          assert subprocess.check_output(['git', 'write-tree']).decode().strip() == expected
+          paths = subprocess.check_output(['git', 'diff', '--cached', '--name-only', '-z', 'HEAD']).decode().strip('\0').split('\0')
+          elements = []
+          for path in paths:
+              data = Path(path).read_bytes()
+              sha = subprocess.check_output(['git', 'rev-parse', ':' + path]).decode().strip()
+              body = json.dumps({'content': base64.b64encode(data).decode(), 'encoding': 'base64'}).encode()
+              req = urllib.request.Request('https://api.github.com/repos/paulkakell/kellmarks/git/blobs', data=body, method='POST', headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json', 'X-GitHub-Api-Version': '2022-11-28'})
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  actual = json.load(response)['sha']
+              assert actual == sha, path
+              elements.append({'path': path, 'mode': '100644', 'type': 'blob', 'sha': sha})
+              print(path, sha, flush=True)
+          manifest = {'base_tree_sha': 'acd75b15842af8ba09860fb600b8a56304efca14', 'expected_tree_sha': expected, 'tree_elements': elements}
+          Path('../source-manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
+          print('VERIFIED_TREE=' + expected)
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: verified-source-manifest-02300
+          path: source-manifest.json
+          retention-days: 3
+          if-no-files-found: error
