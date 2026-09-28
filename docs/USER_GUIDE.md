@@ -76,7 +76,7 @@ python docs/server/app.py
 
 The server refuses the DDG endpoint before a network call and removes remote image sources from the response Content Security Policy. Dashboard controls are disabled. The default `1` preserves the direct API contract but does not enable automatic dashboard searches or icons. Valid boolean forms are `1/0`, `true/false`, `yes/no` and `on/off`, case-insensitive. Invalid values stop startup. Restart and reload open pages after changing it.
 
-This setting controls application-owned lookups, not all machine traffic. Clicking a saved website or an external documentation link remains explicit browser navigation. No metadata fetcher, link checker, preservation worker or AI provider is implemented yet; each must obey the policy when introduced.
+This setting controls application-owned lookups, not all machine traffic. Clicking a saved website or an external documentation link remains explicit browser navigation. The opt-in description fetcher described below also obeys this setting. Link checking, preservation workers and AI providers remain unimplemented; they must obey the same policy when introduced.
 
 ## Sort the current view
 
