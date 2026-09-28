@@ -1,5 +1,9 @@
 # Installing and operating Kellmarks
 
+**Recommended: [install the prebuilt GHCR image with docker-compose.yml](GHCR_INSTALLATION.md).**
+That option needs no Git checkout, host Python, or local image build. The guide
+below retains the source-build installation and shared operational reference.
+
 Choose **Docker Compose** for a complete, persistent server, **local Python** for
 loopback-only personal use/development, or the **static demonstration** for a
 browser-local preview. Docker includes the dashboard, Flask API, pinned Python
@@ -46,9 +50,12 @@ Docker group grants extensive host control; do not grant it to untrusted users.
 The first build needs network access to the Python image registry and PyPI.
 Use a local disk for the data volume, not an unverified NFS/SMB mount.
 
-These Docker files are provided in the repository's current source. Older release
-archives, including `v02.01.01`, predate this installation option. This guide uses
-a **locally built image**, not an assumed Docker Hub or GHCR publication.
+Docker and GHCR installation files ship with `v02.02.00` and newer releases.
+Older release archives, including `v02.01.02`, predate the complete Docker option.
+This page uses a **locally built image** via `compose.yaml`; the separate
+[GHCR guide](GHCR_INSTALLATION.md) uses the pull-only `docker-compose.yml`.
+When both files are present, always specify `-f docker-compose.yml` for GHCR.
+Do not combine the two base files, since Compose merges build settings.
 
 ## Docker Compose: full server
 
@@ -68,10 +75,10 @@ Linux/macOS shell:
     echo '.env already exists; preserve the existing configuration.' >&2
     exit 1
   fi
-  docker build --pull -t kellmarks:local .
+  docker build --pull -t kellmarks:02.02.00 .
   umask 077
   cp .env.docker.example .env
-  docker run --rm --entrypoint python kellmarks:local \
+  docker run --rm --entrypoint python kellmarks:02.02.00 \
     -c "import secrets; print('KELLMARKS_AUTH_TOKEN=' + secrets.token_urlsafe(32))" >> .env
 )
 ```
@@ -85,11 +92,11 @@ not baked into the image or placed in a command-line argument.
 Windows PowerShell (new installation only):
 
 ```powershell
-docker build --pull -t kellmarks:local .
+docker build --pull -t kellmarks:02.02.00 .
 if ($LASTEXITCODE -ne 0) { throw 'Image build failed.' }
 if (Test-Path .env) { throw '.env already exists; preserve the existing configuration.' }
 Copy-Item .env.docker.example .env
-$token = docker run --rm --entrypoint python kellmarks:local -c "import secrets; print(secrets.token_urlsafe(32))"
+$token = docker run --rm --entrypoint python kellmarks:02.02.00 -c "import secrets; print(secrets.token_urlsafe(32))"
 if ($LASTEXITCODE -ne 0) { throw 'Token generation failed.' }
 Add-Content -Path .env -Value "KELLMARKS_AUTH_TOKEN=$token" -Encoding ascii
 Remove-Variable token
@@ -232,7 +239,7 @@ docker run -d --name kellmarks --restart unless-stopped --init \
   --stop-timeout 40 --log-opt max-size=10m --log-opt max-file=3 \
   -p 127.0.0.1:8787:8787 \
   -v kellmarks_standalone_data:/data \
-  kellmarks:local
+  kellmarks:02.02.00
 docker exec kellmarks python /app/docker/healthcheck.py
 ```
 
@@ -256,7 +263,7 @@ The build context is deny-by-default and does not include local data or secrets.
 | --- | --- |
 | `KELLMARKS_AUTH_TOKEN` | Required; securely generated at installation. |
 | `KELLMARKS_HTTP_PORT` | Host loopback port `8787`; container port stays `8787`. |
-| `KELLMARKS_IMAGE` | Local image tag `kellmarks:local`; may be overridden for controlled builds/rollback. |
+| `KELLMARKS_IMAGE` | Local image tag `kellmarks:02.02.00`; may be overridden for controlled builds/rollback. |
 | `KELLMARKS_DOMAIN` | Required only for the HTTPS overlay. |
 | `KELLMARKS_TRUSTED_HOSTS` | Exact hostnames without ports; the HTTPS overlay supplies its own value. |
 | `KELLMARKS_PUBLIC_ORIGIN` | Exact external origin; automatically HTTPS in the overlay. |
@@ -312,7 +319,7 @@ First take a backup as below. Retain the old source revision and image:
 
 ```bash
 git rev-parse HEAD
-docker image tag kellmarks:local kellmarks:rollback
+docker image tag kellmarks:02.02.00 kellmarks:rollback
 git pull --ff-only
 docker compose build --pull
 docker compose up -d --wait
@@ -331,7 +338,7 @@ To roll back, retain the current data backup, restore the matching old source
 revision (so Compose/config files match), and tag the saved image back:
 
 ```bash
-docker image tag kellmarks:rollback kellmarks:local
+docker image tag kellmarks:rollback kellmarks:02.02.00
 docker compose up -d --no-build --force-recreate --wait
 ```
 

@@ -12,9 +12,15 @@ permissions:
 
 jobs:
   docker:
-    name: Build and exercise full-server Docker deployment
+    name: Docker server (${{ matrix.platform }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+    env:
+      DOCKER_DEFAULT_PLATFORM: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -26,12 +32,26 @@ jobs:
           python -m pip check
           pip-audit --no-deps -r docker/requirements.txt
           bandit -r docker -ll
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+        with:
+          platforms: arm64
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Validate release scripts
+        run: |
+          python -m compileall -q scripts docker
+          mypy scripts/publish_container.py
       - name: Build the production image
-        run: docker build --pull -t kellmarks:ci .
+        env:
+          BUILD_REVISION: ${{ github.sha }}
+        run: |
+          docker buildx build --pull --load --platform "$DOCKER_DEFAULT_PLATFORM" \
+            --build-arg "VCS_REF=$BUILD_REVISION" -t kellmarks:ci .
       - name: Validate HTTPS proxy configuration without requesting a certificate
         run: |
           docker run --rm -e KELLMARKS_DOMAIN=bookmarks.example.com \
             -v "$PWD/docker/Caddyfile:/etc/caddy/Caddyfile:ro" \
             caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
       - name: Test authentication, isolation, health, persistence, backup and restore
-        run: python scripts/docker_smoke.py
+        run: |
+          python scripts/docker_smoke.py
+          KELLMARKS_TEST_COMPOSE=docker-compose.yml python scripts/docker_smoke.py

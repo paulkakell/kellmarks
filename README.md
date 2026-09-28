@@ -1,6 +1,6 @@
 # Kellmarks
 
-[![Version 02.01.02](https://img.shields.io/badge/version-02.01.02-FFD700?style=flat-square&labelColor=000000)](docs/releases/02.01.02.md)
+[![Version 02.02.00](https://img.shields.io/badge/version-02.02.00-FFD700?style=flat-square&labelColor=000000)](docs/releases/02.02.00.md)
 [![Latest release](https://img.shields.io/github/v/release/paulkakell/kellmarks?display_name=tag&sort=semver&style=flat-square&label=release)](https://github.com/paulkakell/kellmarks/releases/latest)
 [![Python 3.10 and 3.13](https://img.shields.io/badge/python-3.10%20%7C%203.13-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![Data schema 2](https://img.shields.io/badge/data%20schema-2-FFD700?style=flat-square&labelColor=000000)](docs/API.md)
@@ -9,7 +9,25 @@
 
 Kellmarks is a local-first bookmark dashboard with hierarchical tags, Boolean search, import and export, and a small Flask API backed by one private JSON file.
 
-Version: **02.01.02**
+Version: **02.02.00**
+
+## Prebuilt Docker installation (GHCR)
+
+Use **`ghcr.io/paulkakell/kellmarks:02.02.00`** with the pull-only
+`docker-compose.yml`. The image contains the dashboard, production API server
+and private persistent storage support. Linux AMD64 and ARM64 are supported.
+See the [complete GHCR installation guide](docs/GHCR_INSTALLATION.md) for downloading the files,
+secure token generation, HTTPS, upgrades, backup/restore and registry access.
+After creating `.env` as described there:
+
+```bash
+docker compose -f docker-compose.yml config --quiet
+docker compose -f docker-compose.yml pull
+docker compose -f docker-compose.yml up -d --wait
+```
+
+The existing `compose.yaml` remains the source-build option. Always name the
+GHCR file explicitly when both files exist.
 
 ## Security model
 

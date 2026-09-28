@@ -9,10 +9,10 @@ on:
 permissions:
   actions: read
   checks: read
-  contents: write
+  contents: read
 
 concurrency:
-  group: publish-release-${{ github.event.workflow_run.head_sha || github.sha }}
+  group: publish-release-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
@@ -22,9 +22,16 @@ jobs:
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_run' &&
        github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_branch == 'main')
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      checks: read
+      contents: write
+      packages: write
     env:
       GH_TOKEN: ${{ github.token }}
       RELEASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
@@ -33,6 +40,13 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require the current trusted main commit
+        run: |
+          set -euo pipefail
+          test "$RELEASE_SHA" = "$(git rev-parse origin/main)"
+          python scripts/validate_release.py
 
       - name: Validate version and release notes
         id: release
@@ -67,6 +81,8 @@ jobs:
               "Quality, security, dependencies, and clean build",
               "Analyze python",
               "Analyze javascript-typescript",
+              "Docker server (linux/amd64)",
+              "Docker server (linux/arm64)",
           }
 
           for attempt in range(60):
@@ -117,11 +133,32 @@ jobs:
               time.sleep(10)
           PY
 
+      - name: Reject conflicting release tags before publishing any image
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+            git fetch origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+            test "$(git rev-list -n 1 "$RELEASE_TAG")" = "$RELEASE_SHA"
+          fi
+
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+        with:
+          platforms: arm64
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Authenticate to GHCR with the job-scoped token
+        run: printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+      - name: Publish and test the exact registry digest and prepare install assets
+        id: container
+        run: python scripts/publish_container.py
+
       - name: Publish immutable tag and GitHub release
         env:
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
           RELEASE_NOTES: ${{ steps.release.outputs.notes }}
+          CONTAINER_ASSETS: ${{ steps.container.outputs.assets }}
         run: |
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             git fetch --force origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
@@ -146,12 +183,28 @@ jobs:
               --verify-tag \
               --title "Kellmarks ${RELEASE_VERSION}" \
               --notes-file "$RELEASE_NOTES" \
-              --latest
+              --latest "$CONTAINER_ASSETS"/* "$CONTAINER_ASSETS/.env.docker.example"
           else
             gh release create "$RELEASE_TAG" \
               --repo "$GITHUB_REPOSITORY" \
               --target "$RELEASE_SHA" \
               --title "Kellmarks ${RELEASE_VERSION}" \
               --notes-file "$RELEASE_NOTES" \
-              --latest
+              --latest "$CONTAINER_ASSETS"/* "$CONTAINER_ASSETS/.env.docker.example"
           fi
+
+      - name: Promote latest only for the current successfully released main commit
+        env:
+          IMAGE: ${{ steps.container.outputs.image }}
+          DIGEST: ${{ steps.container.outputs.digest }}
+        run: |
+          set -euo pipefail
+          main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          if [[ "$main_sha" = "$RELEASE_SHA" ]]; then
+            docker buildx imagetools create --tag "${IMAGE}:latest" "${IMAGE}@${DIGEST}"
+          else
+            echo "Main advanced; leaving the latest image alias unchanged."
+          fi
+      - name: Remove registry credentials
+        if: always()
+        run: docker logout ghcr.io

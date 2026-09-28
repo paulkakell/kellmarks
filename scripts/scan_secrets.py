@@ -16,6 +16,7 @@ TEXT_SUFFIXES = {
     ".lock",
     ".md",
     ".py",
+    ".sh",
     ".toml",
     ".txt",
     ".yaml",

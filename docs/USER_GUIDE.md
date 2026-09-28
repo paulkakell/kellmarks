@@ -1,5 +1,10 @@
 # KellMarks user guide 02.01.02
 
+For a shared full-server installation without a local build, follow the
+[GHCR and docker-compose.yml installation guide](GHCR_INSTALLATION.md).
+Local Python and source-built Docker remain supported.
+
+
 This guide describes implemented behavior. The [roadmap](ROADMAP.md) describes later work and should not be read as a current feature list.
 
 ## Bring in an existing collection

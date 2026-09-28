@@ -7,7 +7,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "02.01.02"
+EXPECTED_VERSION = "02.02.00"
 VERSION_PATTERN = re.compile(r"^\d{2}\.\d{2}\.\d{2}$")
 
 
@@ -35,6 +35,9 @@ def main() -> None:
         fail(f"expected VERSION {EXPECTED_VERSION}, found {version}")
 
     version_checks = {
+        "docker-compose.yml": f"ghcr.io/paulkakell/kellmarks:{version}",
+        "Dockerfile": f"ARG KELLMARKS_VERSION={version}",
+        "docs/GHCR_INSTALLATION.md": f"ghcr.io/paulkakell/kellmarks:{version}",
         "docs/server/app.py": f'APP_VERSION = "{version}"',
         "docs/assets/app.js": f'const APP_VERSION = "{version}";',
         "README.md": f"img.shields.io/badge/version-{version}-FFD700",
@@ -117,6 +120,8 @@ def main() -> None:
         f"docs/releases/{version}.md",
         "docs/ROADMAP.md",
         "docs/USER_GUIDE.md",
+        "docs/INSTALLATION.md",
+        "docs/GHCR_INSTALLATION.md",
     ]
     for relative in required_docs:
         read(relative)
