@@ -56,7 +56,8 @@ def run(args: list[str], *, check: bool = True,
 def inspect_existing(image: str, tag: str, version: str, revision: str) -> str | None:
     """Only an explicit missing manifest permits building; auth/network errors fail."""
     reference = f"{image}:{tag}"
-    result = run(["docker", "buildx", "imagetools", "inspect", reference], check=False)
+    result = run(["docker", "buildx", "imagetools", "inspect", reference,
+                  "--format", "{{json .Manifest}}"], check=False)
     if result.returncode:
         error = result.stderr.lower()
         if ("not found" in error or "manifest unknown" in error) and not any(
@@ -64,17 +65,17 @@ def inspect_existing(image: str, tag: str, version: str, revision: str) -> str |
         ):
             return None
         raise RuntimeError("registry inspection failed; check package access and connectivity")
-    run(["docker", "pull", "--platform", "linux/amd64", reference], timeout=300)
-    info = json.loads(run(["docker", "image", "inspect", reference]).stdout)[0]
+    # Resolve once in the registry; local RepoDigests may list a child before its index.
+    digest = checked_digest(str(json.loads(result.stdout).get("digest", "")))
+    immutable = f"{image}@{digest}"
+    run(["docker", "pull", "--platform", "linux/amd64", immutable], timeout=300)
+    info = json.loads(run(["docker", "image", "inspect", immutable]).stdout)[0]
     labels = info["Config"].get("Labels") or {}
     if labels.get("org.opencontainers.image.version") != version or labels.get(
         "org.opencontainers.image.revision"
     ) != revision:
         raise RuntimeError("existing image belongs to another release; refusing to overwrite it")
-    for value in info.get("RepoDigests", []):
-        if value.startswith(image + "@"):
-            return checked_digest(value.split("@", 1)[1])
-    raise RuntimeError("registry image has no verified repository digest")
+    return digest
 
 
 def validate_platforms(manifest: dict[str, Any]) -> None:
