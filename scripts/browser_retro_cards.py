@@ -8,6 +8,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
+from browser_settings import choose_setting
 from playwright.sync_api import expect
 
 
@@ -93,11 +94,12 @@ def opened_page(context: Any, page: Any, action: Any, target: str) -> None:
 
 
 def choose_theme(page: Any, preset: str) -> None:
-    page.locator("#themeBtn").click()
+    choose_setting(page, "#themeBtn")
     page.locator("#themePreset").select_option(preset)
     page.locator("#applyTheme").click()
     expect(page.locator("#themeDialog")).not_to_be_visible()
     expect(page.locator("html")).to_have_attribute("data-theme", preset)
+    page.locator("#settingsBtn").click()
 
 
 def run_retro_card_scenarios(browser: Any, server: Any) -> list[str]:
@@ -143,7 +145,7 @@ def run_retro_card_scenarios(browser: Any, server: Any) -> list[str]:
             assert card(page, "Retro terminal").evaluate("el => getComputedStyle(el).color") == phosphor
             assert page.evaluate("getComputedStyle(document.body).textShadow") != "none"
             assert page.locator(".brand img").evaluate("el => getComputedStyle(el).filter") != "none"
-            page.locator("#themeBtn").click()
+            choose_setting(page, "#themeBtn")
             page.locator("#themePreset").select_option("forest")
             page.keyboard.press("Escape")
             expect(page.locator("html")).to_have_attribute("data-theme", preset)

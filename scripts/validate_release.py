@@ -7,7 +7,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "02.02.01"
+EXPECTED_VERSION = "02.03.00"
 VERSION_PATTERN = re.compile(r"^\d{2}\.\d{2}\.\d{2}$")
 
 

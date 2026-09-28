@@ -4,7 +4,7 @@ name: kellmarks
 
 services:
   kellmarks:
-    image: "${KELLMARKS_IMAGE:-ghcr.io/paulkakell/kellmarks:02.02.01}"
+    image: "${KELLMARKS_IMAGE:-ghcr.io/paulkakell/kellmarks:02.03.00}"
     pull_policy: missing
     restart: unless-stopped
     init: true
@@ -26,6 +26,7 @@ services:
       KELLMARKS_MAX_ENTRIES: "${KELLMARKS_MAX_ENTRIES:-10000}"
       KELLMARKS_MAX_IMPORT_ENTRIES: "${KELLMARKS_MAX_IMPORT_ENTRIES:-5000}"
       KELLMARKS_WRITE_RATE_LIMIT: "${KELLMARKS_WRITE_RATE_LIMIT:-120}"
+      KELLMARKS_METADATA_RATE_LIMIT: "${KELLMARKS_METADATA_RATE_LIMIT:-30}"
       KELLMARKS_DDG_RATE_LIMIT: "${KELLMARKS_DDG_RATE_LIMIT:-30}"
       KELLMARKS_AUTH_RATE_LIMIT: "${KELLMARKS_AUTH_RATE_LIMIT:-20}"
     volumes:

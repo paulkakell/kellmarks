@@ -1,4 +1,4 @@
-# Kellmarks API 02.02.01
+# Kellmarks API 02.03.00
 
 Default base URL: `http://127.0.0.1:8787`
 
@@ -58,7 +58,7 @@ Rules:
 ```json
 {
   "ok": true,
-  "version": "02.02.01",
+  "version": "02.03.00",
   "dataSchemaVersion": 2,
   "time": "2026-08-13T12:00:00Z"
 }
@@ -245,10 +245,10 @@ Uses the same authentication as other API routes. Returns HTTP 200 with status d
 
 ```json
 {
-  "currentVersion": "02.02.01",
-  "latestVersion": "02.02.01",
+  "currentVersion": "02.03.00",
+  "latestVersion": "02.03.00",
   "status": "current",
-  "releaseUrl": "https://github.com/paulkakell/kellmarks/releases/tag/v02.02.01",
+  "releaseUrl": "https://github.com/paulkakell/kellmarks/releases/tag/v02.03.00",
   "checkedAt": "2026-09-27T19:00:00Z"
 }
 ```
@@ -265,7 +265,39 @@ The server fetches one fixed HTTPS GitHub endpoint, rejects redirects, limits up
 ## Container deployment
 
 The GHCR full-server image exposes the same authenticated API and schema-2 data
-format. No new API endpoints are introduced by 02.02.01. Use the packaged
+format. No new API endpoints are introduced by 02.03.00. Use the packaged
 healthcheck for container liveness; unauthenticated health requests still return
 401. See [GHCR installation](GHCR_INSTALLATION.md) for loopback/HTTPS access and
 persistent storage. Registry credentials are never application API credentials.
+
+## Optional description retrieval on creation (02.03.00)
+
+`POST /api/entries` accepts an additional **boolean** `fetchDescription`, default
+`false`. Other types return 400 before networking. Example request body:
+
+```json
+{"url":"https://example.com/article","title":"Article","description":"","fetchDescription":true}
+```
+
+Normal authorization, origin, body, field and write-rate checks run first. With
+explicit `true` and a blank normalized description, the server requests public
+HTTP(S) HTML metadata. Standard `description` takes precedence over
+`og:description` and `twitter:description`; decoded text is whitespace-normalized
+and capped at 600 characters. An existing nonblank description wins. The flag is
+not stored, echoed in Entry, or exported. PUT and imports do not fetch descriptions.
+
+A successful save still returns **201 with the normal Entry object**, whether or
+not metadata succeeds. `X-Kellmarks-Description-Status` is one of:
+`not-requested`, `preserved`, `disabled`, `fetched`, `missing`, `unsupported`,
+`blocked`, `unavailable`, `redirect-limit`, `busy`, `rate-limited`.
+These describe retrieval, not the success of later independent writes. Normal
+validation, authentication and persistence errors retain their existing responses.
+
+`KELLMARKS_EXTERNAL_REQUESTS=0` denies retrieval before DNS. Public default-port
+HTTP(S) only, no credentials/proxies/cookies/referrer, no HTTPS downgrade, all DNS
+answers and redirect targets checked, and numeric socket destinations pinned.
+Limits are six seconds, three redirects, 256 KiB HTML and four active workers per
+process. `KELLMARKS_METADATA_RATE_LIMIT` defaults to 30 attempts/client/minute
+(1..10000); exceeding this metadata limit still saves without a description.
+The existing general write limit can still return 429. No metadata request runs
+under the store write lock. Logs contain only request ID and retrieval status.

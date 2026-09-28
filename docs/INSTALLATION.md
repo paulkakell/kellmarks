@@ -75,10 +75,10 @@ Linux/macOS shell:
     echo '.env already exists; preserve the existing configuration.' >&2
     exit 1
   fi
-  docker build --pull -t kellmarks:02.02.01 .
+  docker build --pull -t kellmarks:02.03.00 .
   umask 077
   cp .env.docker.example .env
-  docker run --rm --entrypoint python kellmarks:02.02.01 \
+  docker run --rm --entrypoint python kellmarks:02.03.00 \
     -c "import secrets; print('KELLMARKS_AUTH_TOKEN=' + secrets.token_urlsafe(32))" >> .env
 )
 ```
@@ -92,11 +92,11 @@ not baked into the image or placed in a command-line argument.
 Windows PowerShell (new installation only):
 
 ```powershell
-docker build --pull -t kellmarks:02.02.01 .
+docker build --pull -t kellmarks:02.03.00 .
 if ($LASTEXITCODE -ne 0) { throw 'Image build failed.' }
 if (Test-Path .env) { throw '.env already exists; preserve the existing configuration.' }
 Copy-Item .env.docker.example .env
-$token = docker run --rm --entrypoint python kellmarks:02.02.01 -c "import secrets; print(secrets.token_urlsafe(32))"
+$token = docker run --rm --entrypoint python kellmarks:02.03.00 -c "import secrets; print(secrets.token_urlsafe(32))"
 if ($LASTEXITCODE -ne 0) { throw 'Token generation failed.' }
 Add-Content -Path .env -Value "KELLMARKS_AUTH_TOKEN=$token" -Encoding ascii
 Remove-Variable token
@@ -239,7 +239,7 @@ docker run -d --name kellmarks --restart unless-stopped --init \
   --stop-timeout 40 --log-opt max-size=10m --log-opt max-file=3 \
   -p 127.0.0.1:8787:8787 \
   -v kellmarks_standalone_data:/data \
-  kellmarks:02.02.01
+  kellmarks:02.03.00
 docker exec kellmarks python /app/docker/healthcheck.py
 ```
 
@@ -263,7 +263,7 @@ The build context is deny-by-default and does not include local data or secrets.
 | --- | --- |
 | `KELLMARKS_AUTH_TOKEN` | Required; securely generated at installation. |
 | `KELLMARKS_HTTP_PORT` | Host loopback port `8787`; container port stays `8787`. |
-| `KELLMARKS_IMAGE` | Local image tag `kellmarks:02.02.01`; may be overridden for controlled builds/rollback. |
+| `KELLMARKS_IMAGE` | Local image tag `kellmarks:02.03.00`; may be overridden for controlled builds/rollback. |
 | `KELLMARKS_DOMAIN` | Required only for the HTTPS overlay. |
 | `KELLMARKS_TRUSTED_HOSTS` | Exact hostnames without ports; the HTTPS overlay supplies its own value. |
 | `KELLMARKS_PUBLIC_ORIGIN` | Exact external origin; automatically HTTPS in the overlay. |
@@ -319,7 +319,7 @@ First take a backup as below. Retain the old source revision and image:
 
 ```bash
 git rev-parse HEAD
-docker image tag kellmarks:02.02.01 kellmarks:rollback
+docker image tag kellmarks:02.03.00 kellmarks:rollback
 git pull --ff-only
 docker compose build --pull
 docker compose up -d --wait
@@ -338,7 +338,7 @@ To roll back, retain the current data backup, restore the matching old source
 revision (so Compose/config files match), and tag the saved image back:
 
 ```bash
-docker image tag kellmarks:rollback kellmarks:02.02.01
+docker image tag kellmarks:rollback kellmarks:02.03.00
 docker compose up -d --no-build --force-recreate --wait
 ```
 
@@ -510,3 +510,16 @@ removes its own disposable volumes. CI builds the actual image and checks
 unauthenticated denial, real API/asset serving, non-root/read-only settings,
 health, persistence after recreation, backup and restore. It validates the Caddy
 configuration without requesting a public certificate.
+
+## Optional linked-site descriptions (02.03.00)
+
+After deployment/reload, the user can enable session-only missing-description
+retrieval under Settings. It is off by default and applies only to new entries.
+Keep `KELLMARKS_EXTERNAL_REQUESTS=0` to deny all application-owned external
+lookups, including metadata. `KELLMARKS_METADATA_RATE_LIMIT=30` configures metadata
+attempts per client per minute (integer 1..10000); it is passed through both Compose
+files. Restart the server after changing environment configuration. Metadata has
+fixed six-second/four-worker/256 KiB/three-redirect safeguards and cannot contact
+private networks. Busy/failed lookups save the bookmark without a description.
+See the [user guide](USER_GUIDE.md) for consent and privacy and the API guide for the optional
+`fetchDescription` creation flag. No schema migration or new runtime dependency.

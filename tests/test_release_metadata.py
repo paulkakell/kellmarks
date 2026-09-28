@@ -16,7 +16,7 @@ def read(relative: str) -> str:
 
 def test_release_metadata_is_aligned() -> None:
     version = read("VERSION").strip()
-    assert version == "02.02.01"
+    assert version == "02.03.00"
     assert VERSION_PATTERN.fullmatch(version)
     assert kellmarks.APP_VERSION == version
     assert f'const APP_VERSION = "{version}";' in read("docs/assets/app.js")
@@ -25,7 +25,7 @@ def test_release_metadata_is_aligned() -> None:
     assert f"# Kellmarks {version}" in read(f"docs/releases/{version}.md")
 
 
-def test_version_badges_are_aligned() -> None:
+def test_readme_badges_and_footer_version_are_aligned() -> None:
     version = read("VERSION").strip()
     readme = read("README.md")
     server_readme = read("docs/server/README.md")
@@ -35,7 +35,10 @@ def test_version_badges_are_aligned() -> None:
     assert f"img.shields.io/badge/version-{version}-FFD700" in server_readme
     assert f"../releases/{version}.md" in server_readme
     assert f'aria-label="Kellmarks version {version}"' in index
-    assert f">v{version}<" in index
+    assert f'>Kellmarks v{version}</span>' in index
+    assert 'class="version-badge"' not in index
+    header = index.split("</header>", 1)[0]
+    assert f"v{version}" not in header
 
 
 def test_permanent_workflows_use_immutable_action_references() -> None:

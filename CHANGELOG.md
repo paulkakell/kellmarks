@@ -2,6 +2,18 @@
 
 All notable changes are recorded here. Kellmarks versions use `Release.Feature.BugFix` in fixed-width `xx.xx.xx` form.
 
+## [02.03.00] - 2026-09-27
+
+### Added
+- Settings disclosure containing Theme, JSON/HTML import, JSON export and session-only remote icons. Add confirmed Kellmarks-only browser-storage reset; preserve server bookmarks/backups and other applications' storage. Keep version only in the footer.
+- Session-only opt-in auto-description on new saves with a blank description. Prefer standard, Open Graph, then Twitter description metadata; preserve user-entered descriptions and never fetch on edits/imports. Operator external-request denial remains authoritative.
+- Compatible `POST /api/entries` boolean `fetchDescription` and diagnostic response header; bounded public-web retrieval with DNS/socket pinning, certificate verification, redirect/private-network defenses and failure-safe saving. Add `KELLMARKS_METADATA_RATE_LIMIT` (default 30/minute/client).
+- Regression coverage for metadata/network policy, concurrency, Settings/reset and real-browser creation/consent/fallback behavior. No runtime dependency or schema-2 migration.
+
+### Changed
+- Update all three CodeQL actions to reviewed immutable 4.38.2 revision, carrying PR #8 onto main.
+- Align version markers, API/OpenAPI, configuration, installation, security and user guides. Correct roadmap numbering/ledger without marking undelivered milestones complete. Preserve 02.02.01 release-download verification and all earlier published versions.
+
 ## [02.02.01] - 2026-09-27
 
 ### Fixed

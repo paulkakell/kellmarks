@@ -13,15 +13,17 @@ from pathlib import Path
 from typing import Any
 
 from browser_enhancements import run_feature_scenarios
+from browser_metadata import MOCK_SERVER, run_metadata_scenarios
 from browser_network import intercept_requests
 from browser_retro_cards import run_retro_card_scenarios
+from browser_settings import enable_remote_icons, run_settings_scenarios
 from playwright.sync_api import expect, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 @contextmanager
-def server(external: bool = True):
+def server(external: bool = True, metadata: bool = False):
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 0))
         port = listener.getsockname()[1]
@@ -38,7 +40,8 @@ def server(external: bool = True):
         })
         with (Path(directory) / "server.log").open("w+") as log:
             process = subprocess.Popen(  # noqa: S603
-                [os.getenv("KELLMARKS_TEST_PYTHON", sys.executable), "docs/server/app.py"],
+                [os.getenv("KELLMARKS_TEST_PYTHON", sys.executable),
+                 *(["-c", MOCK_SERVER] if metadata else ["docs/server/app.py"])],
                 cwd=ROOT, env=environment, stdout=log, stderr=subprocess.STDOUT,
             )
             try:
@@ -129,7 +132,7 @@ def main() -> None:
                 assert len(lookups) == 1
                 page.locator("#q").fill("")
                 expect(page.locator("#cards h3")).to_have_count(2)
-                page.locator("#remoteIcons").check()
+                enable_remote_icons(page)
                 # Icons are lazy-loaded; request completion is not a 150 ms guarantee.
                 for icon in page.locator(".icon").all():
                     icon.scroll_into_view_if_needed()
@@ -224,6 +227,8 @@ def main() -> None:
                 completed.append("operator denial overrides all dashboard external controls")
             completed.extend(run_feature_scenarios(browser, server))
             completed.extend(run_retro_card_scenarios(browser, server))
+            completed.extend(run_settings_scenarios(browser, server))
+            completed.extend(run_metadata_scenarios(browser, server))
         finally:
             browser.close()
     print(json.dumps({"browserScenariosPassed": len(completed), "scenarios": completed}, indent=2))

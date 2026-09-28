@@ -31,7 +31,6 @@ header{position:sticky;top:0;z-index:10;background:linear-gradient(to bottom, rg
 .brand img{width:34px;height:34px;border-radius:12px;box-shadow:var(--shadow);background:var(--accent);}
 .brand-title{display:flex;align-items:center;gap:8px;}
 .brand h1{margin:0;font-size:16px;letter-spacing:.5px;font-weight:650;}
-.version-badge{display:inline-flex;align-items:center;min-height:20px;padding:2px 7px;border:1px solid rgba(var(--accent-rgb),.5);border-radius:999px;background:rgba(var(--accent-rgb),.14);color:var(--accent);font-family:var(--mono);font-size:10px;font-weight:750;letter-spacing:.25px;white-space:nowrap;}
 .brand .sub{font-size:12px;color:var(--muted2);}
 .search{flex:1;display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:999px;border:var(--border);background:rgba(var(--fg-rgb),.05);}
 .search input{width:100%;border:0;outline:none;background:transparent;color:var(--fg);font-size:14px;}
@@ -46,7 +45,6 @@ main{max-width:1400px;width:100%;margin:0 auto;padding:16px;display:grid;grid-te
 aside{border:1px solid rgba(var(--accent-rgb),.22);border-radius:var(--radius2);background:rgba(var(--fg-rgb),.04);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;min-height:0;}
 .side-top{padding:14px 14px 10px 14px;border-bottom:1px solid rgba(var(--accent-rgb),.18);}
 .side-top h2{margin:0;font-size:13px;letter-spacing:.35px;text-transform:uppercase;color:rgba(var(--fg-rgb),.85);}
-.side-actions{display:flex;gap:8px;margin-top:10px;}
 .tree{padding:10px 10px 14px 10px;overflow:auto;}
 .tree .node{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;cursor:pointer;user-select:none;}
 .tree .node:hover{background:rgba(var(--fg-rgb),.06);}
@@ -159,3 +157,15 @@ dialog{max-height:calc(100dvh - 32px);overflow:auto;}
 :root:is([data-theme="mono-green"],[data-theme="mono-amber"]) :is(button,input,textarea,select){font-family:var(--mono);}
 :root:is([data-theme="mono-green"],[data-theme="mono-amber"]) .card{border:1px solid rgba(var(--accent-rgb),.55);box-shadow:0 0 12px rgba(var(--accent-rgb),.12);}
 :root:is([data-theme="mono-green"],[data-theme="mono-amber"]) :is(.brand img,.icon img){filter:var(--monitor-filter);}
+
+/* A disclosure, not an ARIA menu: native buttons/checkbox keep their Tab behavior. */
+.settings-control{position:relative;flex-shrink:0;}
+.settings-menu{position:absolute;top:calc(100% + 8px);right:0;z-index:20;width:min(350px,calc(100vw - 32px));max-height:calc(100dvh - 100px);overflow:auto;padding:16px;border:var(--border);border-radius:var(--radius);background:var(--bg);box-shadow:var(--shadow);}
+.settings-menu:not([hidden]){display:grid;gap:10px;}
+.settings-menu h2{margin:10px 0 0;font-size:12px;letter-spacing:.35px;text-transform:uppercase;color:var(--muted);}
+.settings-menu h2:first-child{margin-top:0;}
+.settings-menu .btn{text-align:left;width:100%;}
+.settings-menu .help{margin:0;}
+#clearMemoryTitle{margin:0;font-size:18px;}
+#clearMemoryDialog .modal-body p{margin:0;line-height:1.5;}
+#clearMemoryStatus:not(:empty){border-left:3px solid var(--accent);padding-left:10px;}

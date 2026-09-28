@@ -1,4 +1,4 @@
-# KellMarks user guide 02.01.02
+# KellMarks user guide 02.03.00
 
 For a shared full-server installation without a local build, follow the
 [GHCR and docker-compose.yml installation guide](GHCR_INSTALLATION.md).
@@ -7,9 +7,23 @@ Local Python and source-built Docker remain supported.
 
 This guide describes implemented behavior. The [roadmap](ROADMAP.md) describes later work and should not be read as a current feature list.
 
+## Settings
+
+Open **Settings** in the header for **Theme**, **Import links (JSON / HTML)**, **Export links (JSON)**, **Allow remote icons for this session**, **Fill missing descriptions from linked sites for this session**, and **Clear browser memory…**. Import/export no longer appear in the hierarchy sidebar. The installed version and update check appear only in the footer, not beside the logo.
+
+Settings works with mouse, touch or keyboard. Tab moves between its native controls; Escape, the Settings button, or a click outside dismisses it. Theme and import dialogs retain their preview/cancel behavior and return focus to their Settings control when closed. Remote icons still require session consent and the operator's permission. JSON exports include the full library, regardless of the current search or tag filter. Reviewed imports still require an available server; static/browser-only collections can be exported.
+
+### Clear browser memory
+
+**Settings → Clear browser memory…** opens a confirmation with **Cancel** focused. Nothing is removed until **Clear and reload** is selected. Export browser-only links first: deletion cannot be undone.
+
+The action removes Kellmarks-owned local and session storage for this origin, including browser-only bookmarks, the saved theme, and this tab's API token. It reloads the page, restoring the default theme, resetting search/sort and remote-icon consent, and asking for authentication again when required. Server bookmarks, private backups and downloaded exports are not deleted. A static host may show its bundled sample bookmarks again after the local copy is removed.
+
+Other applications' keys on the same origin, cookies, the browser's HTTP cache, and other sites are not cleared. Other open tabs keep their in-memory state and session tokens; close or reload them separately to avoid retaining or re-saving stale data. If browser policy blocks clearing storage, an error is shown without automatically reloading or claiming success; accessible data may already have been removed. Correct the browser's site-data permissions and retry.
+
 ## Bring in an existing collection
 
-Start the Flask service and open KellMarks. Select **Import**, then choose a KellMarks JSON export, a JSON array of bookmark objects, or a browser bookmark export ending in `.html` or `.htm`. The first preview defaults to **Merge with my library**. Nothing is saved during preview.
+Start the Flask service and open KellMarks. Select **Settings → Import links (JSON / HTML)**, then choose a KellMarks JSON export, a JSON array of bookmark objects, or a browser bookmark export ending in `.html` or `.htm`. The first preview defaults to **Merge with my library**. Nothing is saved during preview.
 
 For example, import a second browser's bookmarks while keeping everything already organized in KellMarks. The preview reports new entries, matching URLs, existing bookmarks that would change, unchanged matches and the final library size. The detail pane shows the first 100 items; the summary counts the complete import.
 
@@ -51,7 +65,7 @@ Typing in **Search my library**, switching tags, sorting, editing or importing d
 
 **Search the web** explicitly sends the current query to DuckDuckGo through the server proxy. It is enabled only for a nonempty query of at most 256 characters when the server allows external requests. A new query cancels and hides stale external results. External responses are not automatically saved as bookmarks. Direct API clients can still request the proxy when the operator permits it.
 
-Remote bookmark icons are off on every page load. Selecting **Allow remote icons for this session** contacts the websites named by saved icon URLs. The choice is held in page memory, not persisted to disk, and resets on reload. Unchecking stops future image loads, but cannot retract requests already sent. Initial-letter placeholders remain available without external requests.
+Remote bookmark icons are off on every page load. Selecting **Settings → Allow remote icons for this session** contacts the websites named by saved icon URLs. The choice is held in page memory, not persisted to disk, and resets on reload. Unchecking stops future image loads, but cannot retract requests already sent. Initial-letter placeholders remain available without external requests.
 
 For an operator-enforced policy, set:
 
@@ -62,7 +76,7 @@ python docs/server/app.py
 
 The server refuses the DDG endpoint before a network call and removes remote image sources from the response Content Security Policy. Dashboard controls are disabled. The default `1` preserves the direct API contract but does not enable automatic dashboard searches or icons. Valid boolean forms are `1/0`, `true/false`, `yes/no` and `on/off`, case-insensitive. Invalid values stop startup. Restart and reload open pages after changing it.
 
-This setting controls application-owned lookups, not all machine traffic. Clicking a saved website or an external documentation link remains explicit browser navigation. No metadata fetcher, link checker, preservation worker or AI provider is implemented yet; each must obey the policy when introduced.
+This setting controls application-owned lookups, not all machine traffic. Clicking a saved website or an external documentation link remains explicit browser navigation. The opt-in description fetcher described below also obeys this setting. Link checking, preservation workers and AI providers remain unimplemented; they must obey the same policy when introduced.
 
 ## Sort the current view
 
@@ -81,11 +95,11 @@ There is no Trash, per-bookmark undo/history, backup browser, bulk tag editor, c
 
 ## Entry defaults and appearance (02.01.01)
 
-Leave **Icon URL** blank to try the site's HTTPS `/favicon.ico`. This is a display fallback: an automatically chosen favicon is not written into the entry, so changing a bookmark URL uses the new site's icon. An explicit icon URL takes priority. Check **Allow remote icons for this session** to permit these website requests; an unavailable icon shows initials. No third-party icon service is used. The operator's external-request deny switch still wins.
+Leave **Icon URL** blank to try the site's HTTPS `/favicon.ico`. This is a display fallback: an automatically chosen favicon is not written into the entry, so changing a bookmark URL uses the new site's icon. An explicit icon URL takes priority. Check **Settings → Allow remote icons for this session** to permit these website requests; an unavailable icon shows initials. No third-party icon service is used. The operator's external-request deny switch still wins.
 
 Leave **Tags** blank when adding an entry to use up to five local suggestions. Kellmarks first reuses common tags for that same hostname, then uses bundled site rules, then falls back to `sites/<hostname>`. These are deterministic local suggestions, not fetched site keywords or AI output. Manual tags are retained. Editing a bookmark never regenerates tags: clearing them keeps it untagged, including after a URL change or reload. Imported and existing records are not backfilled.
 
-Select **Theme** in the header for 22 presets or five custom colors: page background/text, accent, and card background/text. Preview is immediate. **Apply theme** saves to this browser, **Cancel** or Escape restores the previous selection, and **Gold / black** previews the original default. Low-contrast custom combinations produce a warning rather than silently overriding your choices. Theme settings do not change the shared bookmark file or other browsers. When browser storage is blocked, a theme can still be applied for the current page.
+Select **Settings → Theme** for 22 presets or five custom colors: page background/text, accent, and card background/text. Preview is immediate. **Apply theme** saves to this browser, **Cancel** or Escape restores the previous selection, and **Gold / black** previews the original default. Low-contrast custom combinations produce a warning rather than silently overriding your choices. Theme settings do not change the shared bookmark file or other browsers. When browser storage is blocked, a theme can still be applied for the current page.
 
 ### Monochrome monitors and card navigation (02.01.02)
 
@@ -100,3 +114,32 @@ The bottom of the page displays the installed version, release status, a **Check
 Results are cached per server process for one hour, or five minutes after an unsuccessful check. **Check again** refreshes the displayed cached result and retries upstream once the cache expires; the timestamp identifies the actual network attempt. A network error never means the software is current. The check does not download or install updates.
 
 `KELLMARKS_EXTERNAL_REQUESTS=0` disables the lookup. Static demonstration mode shows a manual release link and explains that automatic checking requires the server. Creation-time tag suggestions and themes still work locally when external requests are disabled or the API is unavailable.
+
+## Fill a missing description from the linked site (02.03.00)
+
+Open **Settings** and enable **Fill missing descriptions from linked sites for this
+session**. Then choose **Add**, enter a URL, leave Description blank and save.
+Kellmarks requests that public page from your server and uses its standard
+`description` metadata, falling back to Open Graph and then Twitter metadata.
+The saved result is plain text, limited to 600 characters and editable afterward.
+A description you type is never replaced, even when this option is enabled.
+
+Only a new Save requests metadata: checking the box, typing a URL, editing an
+existing bookmark, importing a collection and rendering/searching the dashboard
+never do. A blank description on an edit stays blank. This is not bulk backfill.
+The editor shows a busy state and prevents duplicate submission while saving.
+
+The option resets to off on every reload, including Clear browser memory. It is
+unavailable in browser-only/file mode and when the operator has disabled external
+requests. No third-party scraping service, browser cookies or Kellmarks token is
+sent. The destination sees your **server's** address and requested page path/query;
+avoid enabling this for confidential or token-bearing links. Fragments are omitted.
+
+Private-network/localhost links remain valid bookmarks but are never fetched for
+descriptions. Retrieval allows only HTTP(S) on standard ports, verified HTTPS and
+at most three redirects, with a six-second deadline and 256 KiB HTML prefix limit.
+Compressed/non-HTML pages and inaccessible/login-only pages may have no usable
+metadata; JavaScript-generated descriptions are not executed. On failure or when
+limits are busy, the bookmark still saves and the message says no site description
+was available. Add your own description with Edit; saving an edit will not retry
+an external fetch. Invalid input or a failed store write still reports a save error.

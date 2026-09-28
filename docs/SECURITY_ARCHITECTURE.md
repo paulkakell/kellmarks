@@ -213,3 +213,39 @@ Package visibility is separate from repository visibility and requires an owner
 choice. Anonymous pull availability is recorded, not assumed. SBOM/provenance
 metadata is not a claim that an operating-system image is vulnerability-free.
 See [installation and credential handling](GHCR_INSTALLATION.md).
+
+## Opt-in metadata boundary (02.03.00)
+
+This release supersedes the earlier no-arbitrary-fetch statement for one narrowly
+scoped, authorized new-entry operation: `fetchDescription: true` on POST entries.
+It does not add an unauthenticated proxy or a fetch-on-read endpoint. UI consent
+is session-only/off by default; API clients consent per create. Operator denial
+is checked before DNS. Manual descriptions, edits, imports and ordinary browsing
+never request metadata. All existing request authentication and validation apply.
+
+`docs/server/metadata.py` parses public default-port HTTP(S), denies embedded
+credentials/control characters, validates **all** DNS answers, and connects a
+socket to the validated numeric address. Peer identity is checked; TLS retains
+normal certificate/hostname verification using the original hostname as SNI.
+Every redirect is validated independently, with a three-hop limit and no HTTPS
+downgrade. Loopback, private, link-local, multicast/reserved and IPv6 transition
+or translation addresses are refused. No ambient proxy, cookies, authorization,
+referrer or third-party metadata service is used. Explicit site paths and queries
+are sent to the target, while fragments are stripped; do not opt in for links
+whose path/query contains secrets. Metadata is untrusted plain text, never HTML
+inserted into the dashboard, executable code or authority for another operation.
+
+An outer six-second deadline, per-socket remaining timeout, 256 KiB HTML prefix,
+four-worker semaphore and dedicated client rate limit bound workload. No queue is
+created. A stalled OS DNS call may retain a bounded worker until the resolver
+returns; expired/cancelled work cannot connect afterward. Cancelling closes the
+active socket. Redirects, compressed documents and non-HTML responses never cause
+unbounded decompression/downloads. Fetching runs outside the JSON store lock, and
+capacity is rechecked in the atomic mutation. Failures leave the description blank
+and never prevent an otherwise valid save. Structured logs record request ID and
+status only. A deployment egress firewall remains recommended defense in depth.
+
+Browser reset is scoped to Kellmarks-prefixed local/session storage and sends no
+server write request. It does not clear HTTP cache, cookies, other applications'
+storage or other tabs' session tokens, and it warns before deleting browser-only
+bookmarks. Storage failures do not falsely report a successful reset.
