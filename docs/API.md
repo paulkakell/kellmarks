@@ -1,4 +1,4 @@
-# Kellmarks API 02.01.02
+# Kellmarks API 02.02.00
 
 Default base URL: `http://127.0.0.1:8787`
 
@@ -58,7 +58,7 @@ Rules:
 ```json
 {
   "ok": true,
-  "version": "02.01.02",
+  "version": "02.02.00",
   "dataSchemaVersion": 2,
   "time": "2026-08-13T12:00:00Z"
 }
@@ -245,10 +245,10 @@ Uses the same authentication as other API routes. Returns HTTP 200 with status d
 
 ```json
 {
-  "currentVersion": "02.01.02",
-  "latestVersion": "02.01.02",
+  "currentVersion": "02.02.00",
+  "latestVersion": "02.02.00",
   "status": "current",
-  "releaseUrl": "https://github.com/paulkakell/kellmarks/releases/tag/v02.01.02",
+  "releaseUrl": "https://github.com/paulkakell/kellmarks/releases/tag/v02.02.00",
   "checkedAt": "2026-09-27T19:00:00Z"
 }
 ```
@@ -260,3 +260,12 @@ The server fetches one fixed HTTPS GitHub endpoint, rejects redirects, limits up
 ## Creation-only tags (02.01.01)
 
 `POST /api/entries` now fills normalized empty tags (missing, null, empty list, empty string or whitespace-only values) with up to five local site suggestions. Existing same-host tags have precedence over bundled site rules and the `sites/<hostname>` fallback. Nonempty explicit tags retain their existing validation and values. `PUT /api/entries/<id>` never runs this logic: an empty tag list clears tags, and omitted tags preserve the stored value. Import, export, store loading and migration do not generate tags. An omitted icon remains an empty stored `iconUrl`; favicon fallback is a consent-controlled frontend display behavior.
+
+
+## Container deployment
+
+The GHCR full-server image exposes the same authenticated API and schema-2 data
+format. No new API endpoints are introduced by 02.02.00. Use the packaged
+healthcheck for container liveness; unauthenticated health requests still return
+401. See [GHCR installation](GHCR_INSTALLATION.md) for loopback/HTTPS access and
+persistent storage. Registry credentials are never application API credentials.

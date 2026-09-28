@@ -1,5 +1,10 @@
 # KellMarks user guide 02.01.02
 
+For a shared full-server installation without a local build, follow the
+[GHCR and docker-compose.yml installation guide](GHCR_INSTALLATION.md).
+Local Python and source-built Docker remain supported.
+
+
 This guide describes implemented behavior. The [roadmap](ROADMAP.md) describes later work and should not be read as a current feature list.
 
 ## Settings
@@ -42,7 +47,7 @@ Titles, URLs and supported description text are imported. Browser-specific metad
 
 ### Replace everything deliberately
 
-Select **Replace my entire library**, preview again, then review the number of existing and incoming bookmarks. Apply requires a second confirmation. A JSON file with an empty entries array can intentionally clear the library in this mode. Merging an empty array does not delete existing entries.
+Select **Replace my entire library**, preview again, then review the number of existing and incoming bookmarks. Apply requires a second confirmation. A JSON file with an empty entries array can intentionally clear the library in this mode. Merging an empty array does not delete existing entries. Replacement does not combine tags or apply duplicate field preferences; the incoming library replaces the old one after validation.
 
 Example: restore a previously saved complete export. First export the current library to a separate file, then preview and confirm replacement. Do not treat the rolling `.bak` as a multi-version history.
 

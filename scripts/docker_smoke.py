@@ -13,10 +13,13 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-IMAGE = 'kellmarks:ci'
+IMAGE = os.environ.get('KELLMARKS_TEST_IMAGE', 'kellmarks:ci')
+COMPOSE_FILE = os.environ.get('KELLMARKS_TEST_COMPOSE', 'compose.yaml')
 
 
 def main() -> None:
+    if COMPOSE_FILE not in {'compose.yaml', 'docker-compose.yml'}:
+        raise ValueError('unsupported test Compose file')
     project = f'kellmarks-test-{secrets.token_hex(5)}'
     token = secrets.token_urlsafe(32)
     environment = {key: value for key, value in os.environ.items()
@@ -33,9 +36,18 @@ def main() -> None:
                             'KELLMARKS_TRUSTED_HOSTS=bookmarks.example.com\n'
                             'KELLMARKS_DOMAIN=bookmarks.example.com\n')
         env_file.chmod(0o600)
+        compose_path = ROOT / COMPOSE_FILE
+        if COMPOSE_FILE == 'docker-compose.yml':
+            # A downloaded Compose file must work with no Dockerfile or source tree.
+            compose_path = Path(temporary) / COMPOSE_FILE
+            compose_path.write_bytes((ROOT / COMPOSE_FILE).read_bytes())
         compose = ['docker', 'compose', '--project-name', project,
-                   '--env-file', str(env_file), '-f', str(ROOT / 'compose.yaml')]
+                   '--env-file', str(env_file), '-f', str(compose_path)]
         try:
+            base_config = json.loads(run([*compose, 'config', '--format', 'json']).stdout)
+            if COMPOSE_FILE == 'docker-compose.yml':
+                assert 'build' not in base_config['services']['kellmarks']
+                assert not (compose_path.parent / 'Dockerfile').exists()
             # Fail closed even if someone explicitly tries to disable auth.
             failed = run(['docker', 'run', '--rm', '-e', 'KELLMARKS_REQUIRE_AUTH=0', IMAGE],
                          check=False)
@@ -48,7 +60,7 @@ def main() -> None:
                 'https://bookmarks.example.com'
             )
             assert 'caddy' in config['services']
-            run([*compose, 'up', '-d', '--wait', '--wait-timeout', '90'])
+            run([*compose, 'up', '-d', '--no-build', '--pull', 'never', '--wait', '--wait-timeout', '90'])
 
             def request(method: str, path: str, payload: Any = None, *, auth: bool = True):
                 address = run([*compose, 'port', 'kellmarks', '8787']).stdout.decode().strip()
@@ -73,6 +85,8 @@ def main() -> None:
             status, body = request('GET', '/api/health')
             assert status == 200 and json.loads(body)['ok'] is True
             assert json.loads(body)['externalRequestsAllowed'] is False
+            assert json.loads(body)['version'] == (ROOT / 'VERSION').read_text().strip()
+            assert json.loads(body)['dataSchemaVersion'] == 2
             assert request('GET', '/', auth=False)[0] == 200
             assert request('GET', '/assets/app.js', auth=False)[0] == 200
             for private in ['/assets/data.json', '/server/app.py', '/data/data.json']:
@@ -88,7 +102,7 @@ def main() -> None:
             assert inspection['HostConfig']['ReadonlyRootfs'] is True
             assert 'ALL' in inspection['HostConfig']['CapDrop']
             run([*compose, 'exec', '-T', 'kellmarks', 'python', '/app/docker/healthcheck.py'])
-            run([*compose, 'up', '-d', '--force-recreate', '--wait', '--wait-timeout', '90'])
+            run([*compose, 'up', '-d', '--no-build', '--pull', 'never', '--force-recreate', '--wait', '--wait-timeout', '90'])
             status, body = request('GET', f'/api/entries/{entry_id}')
             assert status == 200 and json.loads(body)['title'] == entry['title']
 
@@ -98,12 +112,12 @@ def main() -> None:
                           'kellmarks', '-C', '/data', '-czf', '-', '.']).stdout
             with tarfile.open(fileobj=io.BytesIO(backup), mode='r:gz') as archive:
                 assert './data.json' in archive.getnames()
-            run([*compose, 'up', '-d', '--wait', '--wait-timeout', '90'])
+            run([*compose, 'up', '-d', '--no-build', '--pull', 'never', '--wait', '--wait-timeout', '90'])
             assert request('DELETE', f'/api/entries/{entry_id}')[0] in {200, 204}
             run([*compose, 'stop', 'kellmarks'])
             run([*compose, 'run', '--rm', '--no-deps', '-T', '--entrypoint', 'tar',
                  'kellmarks', '-C', '/data', '-xzf', '-'], data=backup)
-            run([*compose, 'up', '-d', '--wait', '--wait-timeout', '90'])
+            run([*compose, 'up', '-d', '--no-build', '--pull', 'never', '--wait', '--wait-timeout', '90'])
             assert request('GET', f'/api/entries/{entry_id}')[0] == 200
             assert token.encode() not in run([*compose, 'logs', '--no-color']).stdout
             print('Docker smoke passed: authenticated UI/API, non-root/read-only runtime, '

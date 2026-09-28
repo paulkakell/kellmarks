@@ -29,7 +29,7 @@ def mock_reply(monkeypatch, checker, data):
 
 @pytest.mark.parametrize("tag,expected", [
     ("02.01.01", "current"), ("v2.1.1", "current"), ("V02.01.01", "current"),
-    ("02.01.02", "update_available"), ("v2.10.0", "update_available"),
+    ("02.02.00", "update_available"), ("v2.10.0", "update_available"),
     ("02.01.00", "ahead"), ("01.99.99", "ahead"),
 ])
 def test_numeric_version_order_and_safe_release_link(monkeypatch, tag, expected) -> None:

@@ -192,3 +192,24 @@ Site-tag suggestions are local, bounded and creation-only. They reuse validated 
 Theme preferences are browser-local, not secrets or shared-store fields. Only the five expected six-digit hex color values and known preset identifiers are accepted. CSS URLs and arbitrary style properties are not accepted. Invalid storage falls back to gold/black; storage exceptions do not prevent app initialization. Custom contrast warnings do not impose a forced palette.
 
 The footer adds one automatic, server-side egress path: the fixed public GitHub latest-release endpoint for this repository. Normal API authorization gates `/api/version`. Incoming tokens, cookies and bookmark data are never forwarded. Redirects are rejected before following their targets; a four-second socket timeout and 256 KiB read limit bound requests. A process-local lock and one-hour success/five-minute failure cache limit upstream traffic. This is a status check, not an updater. All failures remain explicit rather than falsely asserting that software is current. `KELLMARKS_EXTERNAL_REQUESTS=0` short-circuits the lookup, and health checks do not fetch releases. Static mode does not bypass the same-origin connection policy to contact GitHub directly.
+
+
+## GHCR distribution boundary (02.02.00)
+
+The pull-only `docker-compose.yml` and source-build `compose.yaml` share the same
+runtime security and persistence settings. The GHCR file has no build context
+or host-source dependency. Image publishing uses a short-lived job-scoped GitHub
+token after checks on the exact trusted main commit; pull-request events have
+no registry write permissions. Existing version tags must match the source
+revision and are not rebuilt on re-runs. Both platform images are pulled and
+smoke-tested by digest before release promotion. Public installation bundles
+use an explicit file allowlist that excludes operator secrets and bookmark data.
+
+Distribution flow: validated main commit -> multi-platform build -> GHCR
+commit-tagged candidate -> authenticated digest smoke tests -> version tag ->
+GitHub release/install assets -> optional latest alias. Storage flow remains
+browser -> authenticated API -> private `/data` volume; GHCR is not a data store.
+Package visibility is separate from repository visibility and requires an owner
+choice. Anonymous pull availability is recorded, not assumed. SBOM/provenance
+metadata is not a claim that an operating-system image is vulnerability-free.
+See [installation and credential handling](GHCR_INSTALLATION.md).
